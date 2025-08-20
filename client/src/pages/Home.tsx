@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { FoodScan, DailyStats, FoodAnalysisResult } from "@shared/schema";
-import { Clock, Zap, Target, Star } from "lucide-react";
+import { Clock, Zap, Target, Star, MoreHorizontal, Edit3, RefreshCw, Trash2, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface AnalysisResponse {
@@ -20,6 +20,7 @@ interface AnalysisResponse {
 export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -132,7 +133,9 @@ export default function Home() {
 
   const dailyGoal = 1800;
   const consumedCalories = dailyStats?.totalCalories || 0;
-  const remainingCalories = Math.max(dailyGoal - consumedCalories, 0);
+  const isOverGoal = consumedCalories > dailyGoal;
+  const remainingCalories = dailyGoal - consumedCalories;
+  const overAmount = Math.max(consumedCalories - dailyGoal, 0);
   const progressPercentage = Math.min((consumedCalories / dailyGoal) * 100, 100);
 
   const getMealTypeIcon = (mealType?: string | null) => {
@@ -149,16 +152,57 @@ export default function Home() {
     <div className="max-w-lg mx-auto pb-20">
       <ProcessingModal isOpen={isProcessing} progress={processingProgress} />
       
-      {/* Daily Progress Stats */}
+      {/* HERO: Camera Interface - Make scanning the primary action */}
       <div className="px-4 py-6">
+        <div className="text-center mb-4">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Scan Your Food</h1>
+          <p className="text-slate-600">Point your camera at the meal. AI estimates calories in ~3s.</p>
+        </div>
+        <CameraInterface 
+          onCapture={handleFileCapture}
+          isProcessing={isProcessing}
+        />
+      </div>
+
+      {/* Daily Progress Stats */}
+      <div className="px-4 mb-6">
         <Card>
           <CardContent className="p-6">
             <div className="text-center mb-6">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="flex bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('day')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      viewMode === 'day' 
+                        ? 'bg-white text-slate-800 shadow-sm' 
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                    data-testid="button-day-view"
+                  >
+                    Day
+                  </button>
+                  <button
+                    onClick={() => setViewMode('week')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      viewMode === 'week' 
+                        ? 'bg-white text-slate-800 shadow-sm' 
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                    data-testid="button-week-view"
+                  >
+                    Week
+                  </button>
+                </div>
+              </div>
               <h2 className="text-2xl font-bold text-slate-800" data-testid="text-daily-progress-title">
-                Today's Progress
+                {viewMode === 'day' ? "Today's Progress" : "This Week's Progress"}
               </h2>
               <p className="text-slate-500 mt-1" data-testid="text-current-date">
-                {format(new Date(), 'EEEE, MMMM d')}
+                {viewMode === 'day' 
+                  ? format(new Date(), 'EEEE, MMMM d')
+                  : `Week of ${format(new Date(), 'MMM d')}`
+                }
               </p>
             </div>
             
@@ -170,10 +214,18 @@ export default function Home() {
                 <div className="text-sm text-slate-500">Consumed</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-500" data-testid="text-calories-remaining">
-                  {remainingCalories.toLocaleString()}
+                {isOverGoal ? (
+                  <div className="text-3xl font-bold text-red-500" data-testid="text-calories-over">
+                    −{overAmount.toLocaleString()}
+                  </div>
+                ) : (
+                  <div className="text-3xl font-bold text-emerald-500" data-testid="text-calories-remaining">
+                    {Math.max(remainingCalories, 0).toLocaleString()}
+                  </div>
+                )}
+                <div className="text-sm text-slate-500">
+                  {isOverGoal ? 'Over goal' : 'Remaining'}
                 </div>
-                <div className="text-sm text-slate-500">Remaining</div>
               </div>
             </div>
 
@@ -188,7 +240,11 @@ export default function Home() {
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2">
                 <div 
-                  className="bg-gradient-to-r from-amber-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    isOverGoal 
+                      ? 'bg-gradient-to-r from-red-500 to-orange-500' 
+                      : 'bg-gradient-to-r from-amber-500 to-emerald-500'
+                  }`}
                   style={{ width: `${progressPercentage}%` }}
                   data-testid="progress-daily-calories"
                 />
@@ -261,12 +317,60 @@ export default function Home() {
                             <h4 className="font-semibold text-slate-800 truncate pr-2" data-testid={`text-food-name-${scan.id}`}>
                               {scan.foodName}
                             </h4>
-                            {scan.confidence && (
-                              <Badge variant="secondary" className="flex items-center gap-1">
-                                <Star className="w-3 h-3" />
-                                {Math.round(scan.confidence * 100)}%
-                              </Badge>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {scan.confidence && (
+                                <Badge 
+                                  variant="secondary" 
+                                  className="flex items-center gap-1"
+                                  title="AI confidence - estimates may vary ±50-100 calories based on portion size and ingredients"
+                                >
+                                  <Star className="w-3 h-3" />
+                                  ±{Math.round(scan.calories * 0.15)} kcal
+                                </Badge>
+                              )}
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-slate-500 hover:text-slate-700"
+                                  title="Edit portion"
+                                  data-testid={`button-edit-${scan.id}`}
+                                  onClick={() => toast({ title: "Edit Portion", description: "Coming soon!" })}
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-slate-500 hover:text-slate-700"
+                                  title="Replace food"
+                                  data-testid={`button-replace-${scan.id}`}
+                                  onClick={() => toast({ title: "Replace Food", description: "Coming soon!" })}
+                                >
+                                  <RefreshCw className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-slate-500 hover:text-red-600"
+                                  title="Delete"
+                                  data-testid={`button-delete-${scan.id}`}
+                                  onClick={() => toast({ title: "Delete Food", description: "Coming soon!" })}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-slate-500 hover:text-slate-700"
+                                  title="More details"
+                                  data-testid={`button-details-${scan.id}`}
+                                  onClick={() => toast({ title: "More Details", description: "Coming soon!" })}
+                                >
+                                  <Info className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                           
                           <p className="text-sm text-slate-500 mt-1 flex items-center gap-1" data-testid={`text-scan-time-${scan.id}`}>
@@ -310,13 +414,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Camera Interface */}
-      <div className="px-4 mb-6">
-        <CameraInterface 
-          onCapture={handleFileCapture}
-          isProcessing={isProcessing}
-        />
-      </div>
 
       {/* Show empty state if no scans */}
       {recentScans.length === 0 && (
@@ -343,26 +440,35 @@ export default function Home() {
             <div className="text-center">
               <h3 className="text-lg font-bold mb-2">Upgrade to CalAI Pro</h3>
               <p className="text-white/80 text-sm mb-4">
-                Get unlimited scans, detailed analytics, and custom goals
+                Free: 2 scans/day • Upgrade for unlimited access
               </p>
 
               <div className="space-y-2 text-sm text-left mb-4">
                 <div className="flex items-center space-x-2">
                   <Target className="w-4 h-4 text-emerald-300" />
-                  <span>Unlimited food scans per day</span>
+                  <span>Unlimited scans • Barcode + verified DB</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Target className="w-4 h-4 text-emerald-300" />
-                  <span>Detailed macro & micro nutrients</span>
+                  <span>Macro & micro insights</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Target className="w-4 h-4 text-emerald-300" />
-                  <span>Meal history & analytics</span>
+                  <span>Health/HealthConnect sync</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Target className="w-4 h-4 text-emerald-300" />
-                  <span>Custom calorie goals</span>
+                  <span>Privacy-first data control</span>
                 </div>
+              </div>
+
+              <div className="bg-white/10 rounded-lg p-3 mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm">$39.99/year</span>
+                  <Badge className="bg-emerald-500 text-white text-xs">Most popular</Badge>
+                </div>
+                <p className="text-xs text-white/70">~$3.33/month</p>
+                <p className="text-xs text-white/70 mt-1">or $9.99/month</p>
               </div>
 
               <Button 
@@ -371,13 +477,13 @@ export default function Home() {
                 onClick={() => {
                   toast({
                     title: "Free Trial Started! 🎉",
-                    description: "Welcome to CalAI Pro! You now have unlimited scans for 3 days.",
+                    description: "Welcome to CalAI Pro! You now have unlimited scans for 7 days.",
                   });
                 }}
               >
-                Start Free Trial
+                Start 7-day free trial
               </Button>
-              <p className="text-xs text-white/70 mt-2">Cancel anytime. Terms apply.</p>
+              <p className="text-xs text-white/70 mt-2">Cancel anytime • Terms apply</p>
             </div>
           </CardContent>
         </Card>

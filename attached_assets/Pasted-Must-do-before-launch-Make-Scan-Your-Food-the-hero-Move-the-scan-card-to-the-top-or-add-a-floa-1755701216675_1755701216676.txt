@@ -1,0 +1,68 @@
+Must-do (before launch)
+
+Make “Scan Your Food” the hero
+Move the scan card to the top (or add a floating round “Scan” button bottom-center on mobile). The primary action should be first.
+
+Progress logic & colors
+You show 3,690 consumed / 1,800 goal with the bar still green.
+
+When over goal, switch the bar to amber/red, show –1,890 remaining (or “Over by 1,890”).
+
+Add weekly toggle (Day / Week).
+
+Paywall clarity (in the gradient card)
+Add pricing right on the card:
+
+$39.99/year (~$3.33/mo) – Most popular
+
+$9.99/month
+Use “Start 7-day free trial” (say the duration) + small “Cancel anytime.”
+If you’ll keep a free tier, say it: “Free: 2 scans/day.”
+
+Meal cards: editability
+Each item should have quick actions: Edit portion, Replace, Delete, More details. A mini portion slider is gold.
+
+Confidence UX
+Instead of only “90%”, show “± kcal” or a tooltip explaining confidence. It builds trust.
+
+Remove the blue dev banner
+(“temporary development preview…”) for production screenshots/demos.
+
+High-impact polish (next sprint)
+
+Macro chips consistency
+Keep same order/colors (Protein/Carbs/Fat) and align grams; consider small icons.
+
+Empty & error states
+If no meals yet: friendly illustration + “Try snapping your plate.”
+Offline: “We’ll upload when you’re back online.”
+
+Accessibility
+Check contrast on light greys; ensure all tap targets ≥ 44 px; add visible focus states.
+
+Performance
+Lazy-load meal images; skeleton loaders for the analysis list.
+
+Social proof & trust
+Add rating stars/“# scans done”, and links: Privacy, Terms, Data export. If some inference is on-device, say it.
+
+Navigation
+For mobile apps, add bottom nav: Home · Scan · History · Profile, with a prominent center Scan FAB.
+
+Microcopy you can drop in
+
+Scan card caption: “Point your camera at the meal. AI estimates calories in ~3s.”
+
+Paywall bullets: “Unlimited scans • Barcode + verified DB • Macro & micro insights • Health/Health Connect sync • Privacy-first data control”
+
+Progress over-goal: “Over goal by 420 cal” (turns amber/red).
+
+What to A/B test first
+
+Paywall position: after 2 free scans vs. immediate.
+
+Trial length: 7 vs 14 days.
+
+Annual price: $39.99 vs $49.99.
+
+Copy: “Don’t log—just snap.” vs “Log meals in 3 seconds.”
