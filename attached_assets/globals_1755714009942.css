@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CalAI brand helpers */
+:root {
+  --calai-primary: #06B6D4;
+  --calai-primary-dark: #0891B2;
+  --calai-secondary: #22C55E;
+  --calai-accent: #F97316;
+  --calai-warn: #F59E0B;
+  --calai-error: #EF4444;
+  --calai-bg: #F8FAFC;
+  --calai-ink: #0F172A;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-calai-primary text-white hover:bg-calai-primaryDark focus:ring-calai-primary;
+}
+
+.btn-outline {
+  @apply border border-calai-primary text-calai-primary hover:bg-calai-primary/10;
+}
+
+.card {
+  @apply bg-white shadow-soft rounded-2xl p-5;
+}

@@ -47,16 +47,8 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
         });
       }
       
-      console.log("MediaStream created:", mediaStream);
-      console.log("Video tracks:", mediaStream.getVideoTracks());
-      console.log("Video track enabled:", mediaStream.getVideoTracks()[0]?.enabled);
-      console.log("Video track ready state:", mediaStream.getVideoTracks()[0]?.readyState);
-      
       setStream(mediaStream);
       setIsActive(true);
-      
-      // Store the stream for the useEffect to pick up
-      (window as any).pendingStream = mediaStream;
     } catch (err: any) {
       console.error("Camera error:", err);
       let errorMessage = "Unable to access camera. ";
@@ -128,10 +120,6 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
   // Connect stream to video element when both are ready
   useEffect(() => {
     if (isActive && videoRef.current && stream) {
-      console.log("useEffect: Setting video source...");
-      console.log("useEffect: Video element exists:", !!videoRef.current);
-      console.log("useEffect: Stream exists:", !!stream);
-      
       // Clear any existing source
       videoRef.current.srcObject = null;
       
@@ -140,11 +128,8 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
       
       // Force video to play
       videoRef.current.onloadedmetadata = async () => {
-        console.log("Video metadata loaded");
-        console.log("Video dimensions:", videoRef.current?.videoWidth, "x", videoRef.current?.videoHeight);
         try {
           await videoRef.current?.play();
-          console.log("Video playing successfully");
         } catch (playError) {
           console.error("Error playing video:", playError);
         }
@@ -154,12 +139,10 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
       setTimeout(async () => {
         try {
           if (videoRef.current) {
-            console.log("Attempting to play video...");
             await videoRef.current.play();
-            console.log("Video play attempt successful");
           }
         } catch (e) {
-          console.log("Play attempt failed:", e);
+          // Silent fallback
         }
       }, 100);
     }
@@ -253,20 +236,8 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
           muted
           className="w-full h-64 object-cover bg-black"
           data-testid="video-camera-feed"
-          onLoadedData={() => {
-            console.log("Video loaded and ready");
-          }}
           onError={(e) => {
             console.error("Video element error:", e);
-          }}
-          onLoadedMetadata={() => {
-            console.log("Video metadata loaded event");
-          }}
-          onCanPlay={() => {
-            console.log("Video can play event");
-          }}
-          onPlaying={() => {
-            console.log("Video is now playing");
           }}
         />
         

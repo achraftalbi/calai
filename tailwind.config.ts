@@ -51,10 +51,18 @@ export default {
           "4": "var(--chart-4)",
           "5": "var(--chart-5)",
         },
-        // CalAI specific colors
-        'calai-primary': '#6366f1', // indigo-500
-        'calai-secondary': '#10b981', // emerald-500
-        'calai-accent': '#f59e0b', // amber-500
+        // CalAI US market-optimized colors
+        calai: {
+          primary: "#06B6D4",      // Modern cyan - trusted, clean
+          primaryDark: "#0891B2",  // Darker cyan for hover states
+          secondary: "#22C55E",    // Success green - health/nutrition
+          accent: "#F97316",       // Energy orange - action/motivation
+          warn: "#F59E0B",         // Amber - warnings
+          error: "#EF4444",        // Red - errors
+          info: "#3B82F6",         // Blue - information
+          bg: "#F8FAFC",          // Light background
+          ink: "#0F172A"          // Dark text
+        }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -130,12 +138,14 @@ export default {
         xs: '2px',
       },
       backgroundImage: {
-        'calai-gradient': 'linear-gradient(45deg, var(--calai-primary), var(--calai-secondary))',
-        'calai-gradient-hover': 'linear-gradient(45deg, #5b21b6, #059669)',
+        'calai-gradient': 'linear-gradient(45deg, #06B6D4, #22C55E)',
+        'calai-gradient-hover': 'linear-gradient(45deg, #0891B2, #16A34A)',
+        "calai-hero": "linear-gradient(135deg, #06B6D4 0%, #22C55E 100%)"
       },
       boxShadow: {
-        'calai': '0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06)',
-        'calai-lg': '0 10px 15px -3px rgba(99, 102, 241, 0.1), 0 4px 6px -2px rgba(99, 102, 241, 0.05)',
+        'calai': '0 4px 6px -1px rgba(6, 182, 212, 0.1), 0 2px 4px -1px rgba(6, 182, 212, 0.06)',
+        'calai-lg': '0 10px 15px -3px rgba(6, 182, 212, 0.1), 0 4px 6px -2px rgba(6, 182, 212, 0.05)',
+        soft: "0 8px 24px rgba(2, 6, 23, 0.08)"
       },
     },
   },

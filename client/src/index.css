@@ -31,12 +31,16 @@
   --chart-5: hsl(341.4894 75.2000% 50.9804%);
   --radius: 1rem;
 
-  /* CalAI specific colors */
-  --calai-primary: hsl(243.4 77.5% 62.4%);
-  --calai-secondary: hsl(159 67% 45%);
-  --calai-accent: hsl(42 93% 56%);
-  --calai-gradient-from: hsl(243.4 77.5% 62.4%);
-  --calai-gradient-to: hsl(159 67% 45%);
+  /* CalAI US market-optimized colors */
+  --calai-primary: #06B6D4;
+  --calai-primary-dark: #0891B2;
+  --calai-secondary: #22C55E;
+  --calai-accent: #F97316;
+  --calai-warn: #F59E0B;
+  --calai-error: #EF4444;
+  --calai-info: #3B82F6;
+  --calai-bg: #F8FAFC;
+  --calai-ink: #0F172A;
 }
 
 .dark {
@@ -83,13 +87,38 @@
 }
 
 @layer components {
+  /* CalAI brand utilities */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply text-white hover:bg-calai-primaryDark focus:ring-calai-primary;
+    background-color: var(--calai-primary);
+  }
+
+  .btn-outline {
+    @apply border hover:bg-opacity-10;
+    border-color: var(--calai-primary);
+    color: var(--calai-primary);
+  }
+
+  .btn-outline:hover {
+    background-color: rgba(6, 182, 212, 0.1);
+  }
+
+  .card {
+    @apply bg-white rounded-2xl p-5;
+    box-shadow: 0 8px 24px rgba(2, 6, 23, 0.08);
+  }
+
   /* Custom gradients for CalAI theme */
   .calai-gradient {
-    background: linear-gradient(45deg, var(--calai-gradient-from), var(--calai-gradient-to));
+    background: linear-gradient(45deg, var(--calai-primary), var(--calai-secondary));
   }
   
   .calai-gradient-hover {
-    background: linear-gradient(45deg, hsl(243.4 77.5% 57.4%), hsl(159 67% 40%));
+    background: linear-gradient(45deg, var(--calai-primary-dark), #16A34A);
   }
 
   /* Camera interface animations */
