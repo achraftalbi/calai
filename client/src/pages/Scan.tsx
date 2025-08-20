@@ -191,7 +191,7 @@ export default function Scan() {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <Card>
               <CardContent className="p-4 text-center">
-                <BarChart3 className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <BarChart3 className="w-8 h-8 text-calai-primary mx-auto mb-2" />
                 <h3 className="font-semibold text-slate-800 mb-1">Barcode</h3>
                 <p className="text-xs text-slate-500">Scan product codes</p>
                 <Button variant="outline" size="sm" className="mt-2 w-full">
@@ -202,7 +202,7 @@ export default function Scan() {
             
             <Card>
               <CardContent className="p-4 text-center">
-                <Search className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                <Search className="w-8 h-8 text-calai-secondary mx-auto mb-2" />
                 <h3 className="font-semibold text-slate-800 mb-1">Search</h3>
                 <p className="text-xs text-slate-500">Find foods manually</p>
                 <Button variant="outline" size="sm" className="mt-2 w-full">
