@@ -63,7 +63,7 @@ export default function Profile() {
   return (
     <div className="max-w-lg mx-auto pb-20 px-4 py-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-calai-primary to-calai-secondary rounded-full flex items-center justify-center">
           {(user as any)?.profileImageUrl ? (
             <img
               src={(user as any).profileImageUrl}
@@ -81,7 +81,7 @@ export default function Profile() {
           <p className="text-slate-600">{(user as any)?.email}</p>
           <div className="flex items-center gap-2 mt-1">
             {isProUser ? (
-              <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white">
+              <Badge className="bg-gradient-to-r from-calai-accent to-orange-500 text-white">
                 <Crown className="w-3 h-3 mr-1" />
                 CalAI Pro
               </Badge>
