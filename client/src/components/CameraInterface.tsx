@@ -26,19 +26,36 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
         throw new Error("Camera not supported by this browser");
       }
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'environment' // Use back camera on mobile
-        }
-      });
+      // Try with back camera first, fallback to any camera
+      let mediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'environment' // Use back camera on mobile
+          }
+        });
+      } catch (backCameraError) {
+        console.log("Back camera not available, trying front camera...");
+        // Fallback to any available camera
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+      }
       
       setStream(mediaStream);
       setIsActive(true);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        // Ensure video starts playing
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play();
+        };
       }
     } catch (err: any) {
       console.error("Camera error:", err);
@@ -196,6 +213,12 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
           muted
           className="w-full h-64 object-cover bg-black"
           data-testid="video-camera-feed"
+          onLoadedData={() => {
+            console.log("Video loaded and ready");
+          }}
+          onError={(e) => {
+            console.error("Video element error:", e);
+          }}
         />
         
         {/* Scan line animation */}
