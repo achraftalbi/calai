@@ -11,9 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { FoodScan, DailyStats, FoodAnalysisResult } from "@shared/schema";
 import { Clock, Zap, Target, Star } from "lucide-react";
-
-// Mock user ID for demo - in real app this would come from auth context
-const CURRENT_USER_ID = "demo-user-123";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AnalysisResponse {
   scan: FoodScan;
@@ -25,17 +23,20 @@ export default function Home() {
   const [processingProgress, setProcessingProgress] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Fetch daily stats
   const { data: dailyStats } = useQuery<DailyStats | null>({
-    queryKey: ['/api/daily-stats', CURRENT_USER_ID, today],
+    queryKey: ['/api/daily-stats', user?.id, today],
+    enabled: !!user?.id,
   });
 
   // Fetch recent scans
   const { data: recentScans = [] } = useQuery<FoodScan[]>({
-    queryKey: ['/api/food-scans', CURRENT_USER_ID],
+    queryKey: ['/api/food-scans', user?.id],
+    enabled: !!user?.id,
   });
 
   // Get upload URL mutation
@@ -51,7 +52,7 @@ export default function Home() {
     mutationFn: async ({ imageUrl }: { imageUrl: string }) => {
       const response = await apiRequest('POST', '/api/food-scan/analyze', {
         imageUrl,
-        userId: CURRENT_USER_ID,
+        userId: user?.id,
       });
       return response.json() as Promise<AnalysisResponse>;
     },
@@ -59,6 +60,7 @@ export default function Home() {
       toast({
         title: "Food Analyzed Successfully!",
         description: `Found ${data.analysis.foodName} with ${data.analysis.calories} calories`,
+        duration: 5000, // Show for 5 seconds
       });
       
       // Invalidate queries to refresh data

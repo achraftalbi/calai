@@ -5,14 +5,15 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Target, Calendar, Zap, Star } from "lucide-react";
 import type { FoodScan, DailyStats } from "@shared/schema";
-
-// Mock user ID
-const CURRENT_USER_ID = "demo-user-123";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Analytics() {
+  const { user } = useAuth();
+  
   // Fetch food scans for the last 30 days
   const { data: foodScans = [] } = useQuery<FoodScan[]>({
-    queryKey: ['/api/food-scans', CURRENT_USER_ID],
+    queryKey: ['/api/food-scans', user?.id],
+    enabled: !!user?.id,
     select: (data) => {
       const thirtyDaysAgo = subDays(new Date(), 30);
       return data.filter(scan => 
@@ -24,7 +25,8 @@ export default function Analytics() {
   // Get today's stats
   const today = format(new Date(), 'yyyy-MM-dd');
   const { data: todayStats } = useQuery<DailyStats | null>({
-    queryKey: ['/api/daily-stats', CURRENT_USER_ID, today],
+    queryKey: ['/api/daily-stats', user?.id, today],
+    enabled: !!user?.id,
   });
 
   // Calculate analytics

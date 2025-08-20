@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Star, TrendingUp, Filter } from "lucide-react";
 import type { FoodScan } from "@shared/schema";
-
-// Mock user ID
-const CURRENT_USER_ID = "demo-user-123";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function History() {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
+  const { user } = useAuth();
   
   // Fetch food scans with different limits based on period
   const { data: foodScans = [], isLoading } = useQuery<FoodScan[]>({
-    queryKey: ['/api/food-scans', CURRENT_USER_ID],
+    queryKey: ['/api/food-scans', user?.id],
+    enabled: !!user?.id,
     select: (data) => {
       // Filter based on selected period
       const now = new Date();
