@@ -78,22 +78,27 @@ function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
-    <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/scan" component={Scan} />
-          <Route path="/history" component={History} />
-          <Route path="/coach" component={Coach} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/settings" component={Settings} />
-        </>
-      )}
-      <Route component={NotFound} />
-    </Switch>
+    <div className="bg-slate-50 min-h-screen">
+      {isAuthenticated && !isLoading && <AppHeader />}
+      <Switch>
+        {isLoading || !isAuthenticated ? (
+          <Route path="/" component={Landing} />
+        ) : (
+          <>
+            <Route path="/" component={Home} />
+            <Route path="/scan" component={Scan} />
+            <Route path="/history" component={History} />
+            <Route path="/coach" component={Coach} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/subscribe" component={Subscribe} />
+            <Route path="/analytics" component={Analytics} />
+            <Route path="/settings" component={Settings} />
+          </>
+        )}
+        <Route component={NotFound} />
+      </Switch>
+      {isAuthenticated && !isLoading && <BottomNavigation />}
+    </div>
   );
 }
 
@@ -101,33 +106,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="bg-slate-50 min-h-screen">
-          <Router />
-        </div>
+        <Router />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );
 }
 
-function AuthenticatedApp() {
-  return (
-    <>
-      <AppHeader />
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/scan" component={Scan} />
-        <Route path="/history" component={History} />
-        <Route path="/coach" component={Coach} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/subscribe" component={Subscribe} />
-        <Route path="/analytics" component={Analytics} />
-        <Route path="/settings" component={Settings} />
-        <Route component={NotFound} />
-      </Switch>
-      <BottomNavigation />
-    </>
-  );
-}
 
 export default App;
