@@ -136,7 +136,7 @@ export default function Coach() {
 
               <Button 
                 onClick={handleDailyCheckin}
-                className="w-full"
+                className="w-full bg-gradient-to-r from-calai-primary to-calai-secondary"
                 data-testid="button-complete-checkin"
               >
                 Complete Check-in
@@ -144,7 +144,7 @@ export default function Coach() {
             </>
           ) : (
             <div className="text-center py-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+              <CheckCircle2 className="w-8 h-8 text-calai-secondary mx-auto mb-2" />
               <p className="text-slate-600">You've completed today's check-in!</p>
               <p className="text-sm text-slate-500">Come back tomorrow for another check-in.</p>
             </div>
@@ -165,7 +165,7 @@ export default function Coach() {
             {todaysTasks.map((task) => (
               <div key={task.id} className="flex items-center gap-3">
                 <CheckCircle2 
-                  className={`w-5 h-5 ${task.completed ? 'text-emerald-600' : 'text-slate-300'}`}
+                  className={`w-5 h-5 ${task.completed ? 'text-calai-secondary' : 'text-slate-300'}`}
                 />
                 <span className={task.completed ? 'text-slate-500 line-through' : 'text-slate-800'}>
                   {task.text}
@@ -176,12 +176,12 @@ export default function Coach() {
           <div className="mt-4 pt-4 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-600">Progress</span>
-              <span className="text-sm font-bold text-emerald-600">
+              <span className="text-sm font-bold text-calai-secondary">
                 1 of 3 complete
               </span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
-              <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '33%' }}></div>
+              <div className="bg-calai-secondary h-2 rounded-full" style={{ width: '33%' }}></div>
             </div>
           </div>
         </CardContent>
@@ -223,14 +223,14 @@ export default function Coach() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-3 bg-emerald-50 rounded-lg">
-              <Flame className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-emerald-600">5</div>
+            <div className="text-center p-3 bg-calai-bg rounded-lg">
+              <Flame className="w-6 h-6 text-calai-secondary mx-auto mb-2" />
+              <div className="text-2xl font-bold text-calai-secondary">5</div>
               <div className="text-sm text-slate-600">Day Streak</div>
             </div>
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <Award className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-blue-600">12</div>
+            <div className="text-center p-3 bg-cyan-50 rounded-lg">
+              <Award className="w-6 h-6 text-calai-primary mx-auto mb-2" />
+              <div className="text-2xl font-bold text-calai-primary">12</div>
               <div className="text-sm text-slate-600">Goals Hit</div>
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function Coach() {
                 <span className="font-medium">5/7 days</span>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2">
-                <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '71%' }}></div>
+                <div className="bg-calai-secondary h-2 rounded-full" style={{ width: '71%' }}></div>
               </div>
             </div>
           </div>
