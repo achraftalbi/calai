@@ -91,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (user.subscriptionStatus === 'free' && 
-          (user.dailyScansUsed || 0) >= 3) {
+          (user.dailyScansUsed || 0) >= 50) {
         return res.status(429).json({ 
           error: "Daily scan limit reached", 
           message: "Upgrade to Pro for unlimited scans" 

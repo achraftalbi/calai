@@ -1,5 +1,6 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface ProcessingModalProps {
   isOpen: boolean;
@@ -10,6 +11,10 @@ export default function ProcessingModal({ isOpen, progress = 65 }: ProcessingMod
   return (
     <Dialog open={isOpen}>
       <DialogContent className="sm:max-w-sm" data-testid="modal-processing">
+        <VisuallyHidden>
+          <DialogTitle>Processing Food Analysis</DialogTitle>
+          <DialogDescription>Analyzing food image and calculating nutritional information</DialogDescription>
+        </VisuallyHidden>
         <div className="text-center py-4">
           <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-emerald-600 rounded-full mx-auto mb-4 flex items-center justify-center">
             <svg className="w-8 h-8 text-white animate-spin" fill="none" viewBox="0 0 24 24">
