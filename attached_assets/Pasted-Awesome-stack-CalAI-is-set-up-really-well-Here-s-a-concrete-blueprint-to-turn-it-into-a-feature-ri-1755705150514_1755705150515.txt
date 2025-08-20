@@ -1,0 +1,262 @@
+Awesome stack, CalAI is set up really well. Here’s a concrete blueprint to turn it into a feature-rich, production-grade PWA you can build on Replit right now.
+
+What to add (on top of your stack)
+
+Auth & sessions: Lucia (TS-first) with PostgreSQL adapter (works great with Drizzle + Neon). HttpOnly cookies + CSRF.
+
+Payments: Stripe Billing (web subscriptions) with Apple Pay / Google Pay via Payment Request API. RevenueCat is for native; for a PWA Stripe is best.
+
+Image pipeline: signed upload to GCS, thumbnailing (Sharp) + public CDN cache headers.
+
+Queue/limits: per-user scan quotas (e.g., Free 2/day) + rate-limit middleware (IP + user).
+
+Observability: Sentry (front/back), pino + pino-http logs, simple health check, uptime monitor.
+
+Workbox service worker: offline cache + Background Sync for queued scans.
+
+App screens & flows (complete map)
+
+Bottom nav: Home · Scan · History · Coach · Profile
+
+0) Onboarding (5 screens)
+Hook → Goal → Preferences → (optional) Health permissions placeholder* → Notifications → Paywall → Create account
+* PWA can’t talk to Apple Health/Health Connect; plan to add later if you wrap with Capacitor.
+
+1) Paywall
+Annual $39.99 (default) • Monthly $9.99 • Free Lite (2 scans/day) → Start 7-day free trial (Stripe Checkout).
+
+2) Home (Dashboard)
+
+Day/Week toggle progress bar (turns amber/red when over goal).
+
+Today’s meals list (photo, kcal, macro chips, Edit Portion / Replace / Delete).
+
+Quick actions: Scan, Barcode, Same as Yesterday.
+
+“Tip of the day” from Coach.
+
+3) Scan flow
+Camera (WebRTC) → send to /scan → get top prediction + ±kcal + confidence → portion slider → Save as Meal.
+Fallbacks: Add components (multi-item plate), Barcode, Search.
+
+4) Add Food (Search/Barcode/Recents/Favorites)
+Source badges (USDA / Edamam / Custom), serving selector.
+
+5) Meal details
+Breakdown per item, sources, edit, duplicate, delete.
+
+6) History / Analytics
+Calories/macros per day/week/month, streaks, weight trend (manual until native Health is available).
+
+7) Coach
+Daily check-in (3 taps), 1–2 tiny tasks, tips library.
+
+8) Profile & Settings
+Subscription, goals, dietary toggles, notifications, data export CSV, delete account, Privacy/Terms, support.
+
+V1.1 growth: 7-day “Snap-Your-Plate” challenge, referrals, light recipes, fasting window, A/B hooks.
+
+Repository layout (monorepo)
+calai/
+  apps/
+    web/                # React+TS (Vite, Tailwind, shadcn/ui, TanStack Query, Wouter)
+    server/             # Node+Express+TS (REST API)
+  packages/
+    ui/                 # shared components (optional)
+    types/              # zod schemas & shared types
+  infra/
+    drizzle/            # migrations & schema
+    workbox/            # service worker config
+
+Database (Drizzle) — core tables
+// infra/drizzle/schema.ts
+import { pgTable, serial, varchar, integer, timestamp, boolean, numeric, jsonb } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 120 }),
+  hashedPassword: varchar("hashed_password", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  plan: varchar("plan", { length: 20 }).notNull(), // free|monthly|annual
+  status: varchar("status", { length: 20 }).notNull(), // active|trialing|past_due|canceled
+  trialEndsAt: timestamp("trial_ends_at"),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 120 }),
+  stripeSubId: varchar("stripe_sub_id", { length: 120 }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const userPrefs = pgTable("user_prefs", {
+  userId: integer("user_id").primaryKey().references(() => users.id),
+  goal: varchar("goal", { length: 20 }), // lose|maintain|gain
+  kcalGoal: integer("kcal_goal"),        // computed / editable
+  halal: boolean("halal").default(false),
+  vegetarian: boolean("vegetarian").default(false),
+  lowCarb: boolean("low_carb").default(false),
+  highProtein: boolean("high_protein").default(false),
+  notifyBreakfast: varchar("notify_breakfast", { length: 5 }), // "08:00"
+  notifyLunch: varchar("notify_lunch", { length: 5 }),
+  notifyDinner: varchar("notify_dinner", { length: 5 }),
+});
+
+export const meals = pgTable("meals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  at: timestamp("at").defaultNow().notNull(),
+  photoUrl: varchar("photo_url", { length: 1024 }),
+  source: varchar("source", { length: 20 }).notNull(), // scan|barcode|search|custom
+  kcal: integer("kcal").notNull(),
+  protein: numeric("protein", { precision: 6, scale: 1 }).default("0"),
+  carbs: numeric("carbs", { precision: 6, scale: 1 }).default("0"),
+  fat: numeric("fat", { precision: 6, scale: 1 }).default("0"),
+  confidence: numeric("confidence", { precision: 4, scale: 2 }), // 0..1
+});
+
+export const mealItems = pgTable("meal_items", {
+  id: serial("id").primaryKey(),
+  mealId: integer("meal_id").references(() => meals.id).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  brand: varchar("brand", { length: 255 }),
+  source: varchar("source", { length: 20 }), // usda|edamam|custom|gemini
+  sourceId: varchar("source_id", { length: 120 }),
+  servingQty: numeric("serving_qty", { precision: 6, scale: 2 }),
+  servingUnit: varchar("serving_unit", { length: 30 }),
+  kcal: integer("kcal").notNull(),
+  protein: numeric("protein", { precision: 6, scale: 1 }).default("0"),
+  carbs: numeric("carbs", { precision: 6, scale: 1 }).default("0"),
+  fat: numeric("fat", { precision: 6, scale: 1 }).default("0"),
+  metadata: jsonb("metadata"), // extra nutrients, OFF/USDA payload
+});
+
+export const scans = pgTable("scans", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  imageUrl: varchar("image_url", { length: 1024 }).notNull(),
+  model: varchar("model", { length: 80 }).notNull(), // gemini-1.5-pro
+  result: jsonb("result").notNull(), // raw model output
+  confidence: numeric("confidence", { precision: 4, scale: 2 }),
+  kcalStdDev: integer("kcal_stddev"), // for ± kcal
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+
+Migrations: drizzle-kit generate → drizzle-kit push.
+
+REST API contract (Express + Zod)
+
+Auth
+POST /api/auth/register (email+password)
+POST /api/auth/login (sets HttpOnly cookie)
+POST /api/auth/logout
+
+Stripe
+POST /api/billing/create-checkout-session { plan: "monthly"|"annual" } → URL
+POST /api/billing/portal → URL
+POST /api/webhooks/stripe (verify signature; update subscriptions)
+
+Scan
+POST /api/scan (multipart image) →
+
+{
+  "imageUrl":"https://...",
+  "prediction": {"name":"Pancakes","kcal":740,"confidence":0.90,"kcal_pm":80},
+  "items":[{"name":"Pancake","kcal":600},{"name":"Caramel sauce","kcal":140}],
+  "macros":{"protein":15,"carbs":100,"fat":35}
+}
+
+
+Meals
+GET /api/meals?date=2025-08-20
+POST /api/meals { items[], kcal, macros, at, photoUrl, source }
+PATCH /api/meals/:id (portion edit, replace, delete items)
+DELETE /api/meals/:id
+
+Foods
+GET /api/foods/search?q=salmon → merged USDA/Edamam results
+POST /api/barcode/lookup { code } → food item or create custom
+
+Stats
+GET /api/stats/summary?range=day|week|month → totals + streaks
+
+AI pipeline (Gemini → nutrition)
+
+Upload image to GCS (signed upload) → get public URL.
+
+Call Gemini (vision) with a tightly-scoped prompt:
+
+Ask for dish name(s), portion estimate (g/ml), kcal per item, confidence 0–1, and std dev if ambiguous.
+
+Map items → search Edamam (or USDA) by name; adjust by portion; compute macros.
+
+Return kcal ± using the model’s std dev (e.g., 740 ± 80) and a confidence badge.
+
+Persist raw result in scans.result for audit and improvements.
+
+Guardrails:
+
+If confidence < 0.65, show “Low confidence—tap to edit” and auto-open portion editor.
+
+Keep a feedback button: “Not accurate? Edit or Report”.
+
+Service Worker & offline queue (Workbox)
+
+Static cache: workbox-precaching.
+
+API cache (GET meals/stats): StaleWhileRevalidate.
+
+Background Sync: queue POST /api/scan + POST /api/meals if offline; replay when online.
+
+IndexedDB: keep last 7 days of meals for instant load.
+
+Frontend notes (React+TS)
+
+State/data: TanStack Query for meals, scans, stats.
+
+Forms: react-hook-form + zod validation.
+
+Routing: Wouter routes: /, /scan, /history, /coach, /profile, /paywall.
+
+UI: shadcn/ui + lucide icons; keep buttons ≥ 44px; color-blind safe palette.
+
+PWA: manifest.webmanifest, standalone display, 192/512 icons, install prompt.
+
+Security & quotas
+
+HttpOnly session cookies + CSRF token.
+
+Per-user scan limits (DB counter with daily reset).
+
+Rate limit: 60 req/min per IP, 30 req/min per user (express-rate-limit).
+
+Signed GCS URLs; only server writes to buckets.
+
+Two-week build plan
+
+Week 1
+
+Scaffold monorepo; set up Drizzle/Neon + Lucia auth.
+
+Implement /api/scan with Gemini + Edamam fallback; store scans/meals.
+
+GCS signed uploads + image resizing.
+
+Home, Scan, Meal Details screens.
+
+Workbox service worker (offline queue for scan/save).
+
+Week 2
+
+Stripe checkout + webhooks; Free/Lite/Monthly/Annual entitlements.
+
+Paywall + gated features (unlimited scans, history analytics).
+
+History charts + Coach mini-tasks.
+
+Rate limits, daily scan quotas; Sentry; pino logs.
+
+Polish: over-goal color logic, quick actions, confidence ± ui, CSV export.

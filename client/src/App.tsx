@@ -8,9 +8,12 @@ import Home from "@/pages/Home";
 import History from "@/pages/History";
 import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
+import Scan from "@/pages/Scan";
+import Coach from "@/pages/Coach";
+import Profile from "@/pages/Profile";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
-import { Camera, Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock } from "lucide-react";
+import { Camera, Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
 import { useLocation } from "wouter";
 
 function AppHeader() {
@@ -36,28 +39,31 @@ function BottomNavigation() {
 
   const navItems = [
     { path: "/", icon: HomeIcon, label: "Home" },
+    { path: "/scan", icon: ScanLine, label: "Scan" },
     { path: "/history", icon: Clock, label: "History" },
-    { path: "/analytics", icon: BarChart3, label: "Analytics" },
-    { path: "/settings", icon: SettingsIcon, label: "Settings" },
+    { path: "/coach", icon: Heart, label: "Coach" },
+    { path: "/profile", icon: User, label: "Profile" },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 safe-area-pb z-40">
-      <div className="max-w-lg mx-auto px-4 py-2">
-        <div className="flex justify-around items-center">
+      <div className="max-w-lg mx-auto">
+        <div className="flex justify-around items-center h-16">
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location === path;
             return (
               <a
                 key={path}
                 href={path}
-                className={`flex flex-col items-center space-y-1 py-2 px-3 ${
-                  isActive ? "text-indigo-600" : "text-slate-500"
-                } hover:text-indigo-600 transition-colors`}
+                className={`flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-lg transition-colors ${
+                  isActive ? "text-emerald-600" : "text-slate-500 hover:text-slate-700"
+                }`}
                 data-testid={`nav-${label.toLowerCase()}`}
               >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{label}</span>
+                <Icon className={`w-5 h-5 ${isActive ? 'fill-current' : ''}`} />
+                <span className={`text-xs font-medium ${isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  {label}
+                </span>
               </a>
             );
           })}
@@ -77,7 +83,10 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
+          <Route path="/scan" component={Scan} />
           <Route path="/history" component={History} />
+          <Route path="/coach" component={Coach} />
+          <Route path="/profile" component={Profile} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/settings" component={Settings} />
         </>
@@ -106,7 +115,10 @@ function AuthenticatedApp() {
       <AppHeader />
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/scan" component={Scan} />
         <Route path="/history" component={History} />
+        <Route path="/coach" component={Coach} />
+        <Route path="/profile" component={Profile} />
         <Route path="/analytics" component={Analytics} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
