@@ -74,7 +74,7 @@ export default function Coach() {
   return (
     <div className="max-w-lg mx-auto pb-20 px-4 py-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-calai-secondary to-green-600 rounded-full flex items-center justify-center">
           <Heart className="w-6 h-6 text-white" />
         </div>
         <div>

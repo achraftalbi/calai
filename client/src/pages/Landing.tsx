@@ -15,7 +15,7 @@ export default function Landing() {
           CalAI
         </h1>
         
-        <p className="text-xl text-indigo-100 mb-8 leading-relaxed">
+        <p className="text-xl text-cyan-100 mb-8 leading-relaxed">
           AI-powered nutrition tracking. Just snap a photo of your food and get instant calorie and macro analysis.
         </p>
         
@@ -27,7 +27,7 @@ export default function Landing() {
           Get Started - It's Free!
         </Button>
         
-        <p className="text-sm text-indigo-200 mt-3">
+        <p className="text-sm text-cyan-200 mt-3">
           3 free scans daily • No credit card required
         </p>
       </div>
@@ -42,7 +42,7 @@ export default function Landing() {
               </div>
               <div className="text-white">
                 <h3 className="font-semibold mb-1">Instant AI Analysis</h3>
-                <p className="text-sm text-indigo-100">
+                <p className="text-sm text-cyan-100">
                   Get nutrition info in seconds, not minutes of manual entry
                 </p>
               </div>
@@ -56,7 +56,7 @@ export default function Landing() {
               </div>
               <div className="text-white">
                 <h3 className="font-semibold mb-1">Smart Goals</h3>
-                <p className="text-sm text-indigo-100">
+                <p className="text-sm text-cyan-100">
                   Personalized calorie and macro targets based on your goals
                 </p>
               </div>
@@ -70,7 +70,7 @@ export default function Landing() {
               </div>
               <div className="text-white">
                 <h3 className="font-semibold mb-1">Progress Tracking</h3>
-                <p className="text-sm text-indigo-100">
+                <p className="text-sm text-cyan-100">
                   Beautiful charts and insights to keep you motivated
                 </p>
               </div>
@@ -81,7 +81,7 @@ export default function Landing() {
 
       {/* Social Proof */}
       <div className="px-6 pb-8 text-center">
-        <p className="text-indigo-200 text-sm mb-4">
+        <p className="text-cyan-200 text-sm mb-4">
           Join thousands of users who've simplified their nutrition tracking
         </p>
         <div className="flex justify-center space-x-6 text-white/80">
@@ -107,7 +107,7 @@ export default function Landing() {
             <h3 className="text-white font-semibold text-lg mb-2">
               Ready to transform your nutrition?
             </h3>
-            <p className="text-indigo-100 text-sm mb-4">
+            <p className="text-cyan-100 text-sm mb-4">
               Start your free account and get 3 daily scans. Upgrade anytime for unlimited access.
             </p>
             <Button 

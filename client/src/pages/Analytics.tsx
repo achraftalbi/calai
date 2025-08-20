@@ -118,13 +118,13 @@ export default function Analytics() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-indigo-600" data-testid="text-today-scans">
+                <div className="text-2xl font-bold text-calai-primary" data-testid="text-today-scans">
                   {todayStats?.scansCount || 0}
                 </div>
                 <div className="text-sm text-slate-500">Scans Today</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-emerald-600" data-testid="text-today-calories">
+                <div className="text-2xl font-bold text-calai-secondary" data-testid="text-today-calories">
                   {todayStats?.totalCalories || 0}
                 </div>
                 <div className="text-sm text-slate-500">Calories</div>
@@ -264,7 +264,7 @@ export default function Analytics() {
                 <div className="text-sm text-slate-500">Avg Confidence</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-indigo-600" data-testid="text-high-confidence-rate">
+                <div className="text-2xl font-bold text-calai-primary" data-testid="text-high-confidence-rate">
                   {Math.round(confidenceRate)}%
                 </div>
                 <div className="text-sm text-slate-500">High Confidence</div>
@@ -307,7 +307,7 @@ export default function Analytics() {
                 {topFoods.map(([food, count], index) => (
                   <div key={food} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-emerald-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                      <div className="w-8 h-8 bg-gradient-to-br from-calai-primary to-calai-secondary rounded-lg flex items-center justify-center text-white text-sm font-bold">
                         {index + 1}
                       </div>
                       <span className="text-sm font-medium text-slate-700 truncate" data-testid={`text-top-food-${index}`}>

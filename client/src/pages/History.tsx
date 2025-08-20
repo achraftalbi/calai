@@ -129,7 +129,7 @@ export default function History() {
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-indigo-600" data-testid="text-total-scans">
+              <div className="text-2xl font-bold text-calai-primary" data-testid="text-total-scans">
                 {totalScans}
               </div>
               <div className="text-sm text-slate-500">Total Scans</div>
@@ -138,7 +138,7 @@ export default function History() {
           
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-600" data-testid="text-total-calories-history">
+              <div className="text-2xl font-bold text-calai-secondary" data-testid="text-total-calories-history">
                 {totalCalories.toLocaleString()}
               </div>
               <div className="text-sm text-slate-500">Total Calories</div>

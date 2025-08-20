@@ -105,7 +105,7 @@ export default function Profile() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-slate-600">Plan</span>
-                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+                <Badge className="bg-gradient-to-r from-calai-secondary to-green-600 text-white">
                   Annual Pro - $39.99/year
                 </Badge>
               </div>
@@ -122,18 +122,18 @@ export default function Profile() {
             </div>
           ) : (
             <div className="text-center space-y-4">
-              <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg">
-                <Crown className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
+              <div className="p-4 bg-gradient-to-br from-calai-bg to-cyan-50 rounded-lg">
+                <Crown className="w-8 h-8 text-calai-primary mx-auto mb-2" />
                 <h3 className="font-semibold text-slate-800 mb-1">Upgrade to Pro</h3>
                 <p className="text-sm text-slate-600 mb-3">
                   Unlimited scans, advanced analytics, and more
                 </p>
-                <div className="text-lg font-bold text-indigo-600 mb-2">
+                <div className="text-lg font-bold text-calai-primary mb-2">
                   $39.99/year (~$3.33/mo)
                 </div>
               </div>
               <Link href="/subscribe">
-                <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
+                <Button className="w-full bg-gradient-to-r from-calai-primary to-calai-secondary">
                   Upgrade to Pro
                 </Button>
               </Link>

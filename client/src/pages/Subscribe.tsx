@@ -182,7 +182,7 @@ export default function Subscribe() {
               <div className="flex items-center gap-3">
                 <div className={`w-4 h-4 rounded-full border-2 ${
                   selectedPlan === 'yearly' 
-                    ? 'bg-indigo-500 border-indigo-500' 
+                    ? 'bg-calai-primary border-calai-primary' 
                     : 'border-slate-300'
                 }`}>
                   {selectedPlan === 'yearly' && (
@@ -218,7 +218,7 @@ export default function Subscribe() {
               <div className="flex items-center gap-3">
                 <div className={`w-4 h-4 rounded-full border-2 ${
                   selectedPlan === 'monthly' 
-                    ? 'bg-indigo-500 border-indigo-500' 
+                    ? 'bg-calai-primary border-calai-primary' 
                     : 'border-slate-300'
                 }`}>
                   {selectedPlan === 'monthly' && (

@@ -48,12 +48,12 @@ export default function Settings() {
 
       {/* Subscription Status */}
       <div className="px-4 mb-6">
-        <Card className={`${isProUser ? 'bg-gradient-to-br from-indigo-50 to-emerald-50 border-indigo-200' : 'bg-amber-50 border-amber-200'}`}>
+        <Card className={`${isProUser ? 'bg-gradient-to-br from-calai-bg to-cyan-50 border-calai-primary/20' : 'bg-amber-50 border-amber-200'}`}>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">
                 {isProUser ? (
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-emerald-600 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-br from-calai-primary to-calai-secondary rounded-full flex items-center justify-center">
                     <Crown className="w-5 h-5 text-white" />
                   </div>
                 ) : (
@@ -80,7 +80,7 @@ export default function Settings() {
               {!isProUser && (
                 <Button 
                   size="sm" 
-                  className="bg-gradient-to-br from-indigo-600 to-emerald-600"
+                  className="bg-gradient-to-br from-calai-primary to-calai-secondary"
                   data-testid="button-upgrade-subscription"
                   onClick={() => {
                     toast({
@@ -356,7 +356,7 @@ export default function Settings() {
       {/* Save Button */}
       <div className="px-4">
         <Button 
-          className="w-full bg-gradient-to-br from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700"
+          className="w-full bg-gradient-to-br from-calai-primary to-calai-secondary hover:from-cyan-600 hover:to-green-700"
           data-testid="button-save-settings"
         >
           Save Settings
