@@ -157,7 +157,7 @@ export default function Scan() {
       <ProcessingModal isOpen={isProcessing} progress={processingProgress} />
       
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-calai-accent to-orange-500 rounded-full flex items-center justify-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-calai-primary to-calai-secondary rounded-full flex items-center justify-center">
           <ScanLine className="w-6 h-6 text-white" />
         </div>
         <div>
