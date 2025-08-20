@@ -222,7 +222,7 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
           variant="ghost" 
           size="sm" 
           onClick={stopCamera}
-          className="bg-gradient-to-br from-calai-accent to-orange-500 text-white hover:from-orange-600 hover:to-red-500"
+          className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 rounded-full"
           data-testid="button-close-camera"
         >
           <X className="w-4 h-4" />
