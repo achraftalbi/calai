@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { analyzeFoodImage } from "./services/openai";
+import { analyzeFoodImage } from "./services/gemini";
 // import { getNutritionData } from "./services/nutrition";
 import { insertFoodScanSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -119,9 +119,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Analyze with OpenAI Vision
       const aiAnalysis = await analyzeFoodImage(base64Image);
       
-      // For now, we'll just use AI analysis directly
-      // TODO: Add enhanced nutrition data lookup when needed
-      const finalAnalysis = aiAnalysis;
+      // Map Gemini analysis to our expected format
+      const finalAnalysis = {
+        foodName: aiAnalysis.name,
+        calories: aiAnalysis.calories,
+        protein: aiAnalysis.protein,
+        carbs: aiAnalysis.carbs,
+        fat: aiAnalysis.fat,
+        confidence: aiAnalysis.confidence,
+        portionSize: aiAnalysis.servingSize,
+      };
 
       // Save the scan to storage
       const scanData = {
