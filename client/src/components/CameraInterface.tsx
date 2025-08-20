@@ -222,6 +222,7 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
           variant="ghost" 
           size="sm" 
           onClick={stopCamera}
+          className="bg-gradient-to-br from-calai-accent to-orange-500 text-white hover:from-orange-600 hover:to-red-500"
           data-testid="button-close-camera"
         >
           <X className="w-4 h-4" />
@@ -243,7 +244,7 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
         
         {/* Scan line animation */}
         <div className="absolute inset-0 opacity-60">
-          <div className="animate-pulse w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent absolute top-1/2 transform -translate-y-1/2" />
+          <div className="animate-pulse w-full h-0.5 bg-gradient-to-r from-transparent via-calai-primary to-transparent absolute top-1/2 transform -translate-y-1/2" />
         </div>
         
         {/* Center crosshair */}
