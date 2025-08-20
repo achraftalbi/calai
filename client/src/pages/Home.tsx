@@ -257,10 +257,14 @@ export default function Home() {
                   <div className="flex items-start space-x-4">
                     {scan.imageUrl && (
                       <img 
-                        src={scan.imageUrl}
+                        src={`${window.location.origin}${scan.imageUrl}`}
                         alt={scan.foodName}
                         className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
                         data-testid={`img-food-${scan.id}`}
+                        onError={(e) => {
+                          console.log('Image failed to load:', scan.imageUrl);
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
                     )}
                     
@@ -282,28 +286,28 @@ export default function Home() {
                         {format(new Date(scan.scannedAt!), 'h:mm a')} • {getMealTypeIcon(scan.mealType)} {scan.mealType || 'Meal'}
                       </p>
                       
-                      <div className="flex items-center justify-between mt-3">
-                        <div className="text-2xl font-bold text-amber-500" data-testid={`text-calories-${scan.id}`}>
+                      <div className="mt-3">
+                        <div className="text-3xl font-bold text-amber-500 mb-2" data-testid={`text-calories-${scan.id}`}>
                           {scan.calories} cal
                         </div>
-                        <div className="flex space-x-4 text-xs">
-                          <div className="text-center">
-                            <div className="font-medium text-slate-700" data-testid={`text-protein-${scan.id}`}>
-                              {scan.protein}g
-                            </div>
-                            <div className="text-slate-500">Protein</div>
+                        <div className="flex space-x-6 text-sm">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="font-medium text-slate-700" data-testid={`text-protein-${scan.id}`}>
+                              {scan.protein}g Protein
+                            </span>
                           </div>
-                          <div className="text-center">
-                            <div className="font-medium text-slate-700" data-testid={`text-carbs-${scan.id}`}>
-                              {scan.carbs}g
-                            </div>
-                            <div className="text-slate-500">Carbs</div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="font-medium text-slate-700" data-testid={`text-carbs-${scan.id}`}>
+                              {scan.carbs}g Carbs
+                            </span>
                           </div>
-                          <div className="text-center">
-                            <div className="font-medium text-slate-700" data-testid={`text-fat-${scan.id}`}>
-                              {scan.fat}g
-                            </div>
-                            <div className="text-slate-500">Fat</div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span className="font-medium text-slate-700" data-testid={`text-fat-${scan.id}`}>
+                              {scan.fat}g Fat
+                            </span>
                           </div>
                         </div>
                       </div>
