@@ -18,10 +18,14 @@ import {
   Shield,
   CreditCard
 } from "lucide-react";
+import { Link } from "wouter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: (user as any)?.firstName || '',
@@ -109,10 +113,12 @@ export default function Profile() {
                 <span className="text-slate-600">Next billing</span>
                 <span className="font-medium">Dec 15, 2025</span>
               </div>
-              <Button variant="outline" className="w-full">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Manage Billing
-              </Button>
+              <Link href="/subscribe">
+                <Button variant="outline" className="w-full">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Manage Subscription
+                </Button>
+              </Link>
             </div>
           ) : (
             <div className="text-center space-y-4">
@@ -126,9 +132,11 @@ export default function Profile() {
                   $39.99/year (~$3.33/mo)
                 </div>
               </div>
-              <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
-                Start Free Trial
-              </Button>
+              <Link href="/subscribe">
+                <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
+                  Upgrade to Pro
+                </Button>
+              </Link>
             </div>
           )}
         </CardContent>

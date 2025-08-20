@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { FoodScan, DailyStats, FoodAnalysisResult } from "@shared/schema";
 import { Clock, Zap, Target, Star, MoreHorizontal, Edit3, RefreshCw, Trash2, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 
 interface AnalysisResponse {
   scan: FoodScan;
@@ -29,14 +30,14 @@ export default function Home() {
 
   // Fetch daily stats
   const { data: dailyStats } = useQuery<DailyStats | null>({
-    queryKey: ['/api/daily-stats', user?.id, today],
-    enabled: !!user?.id,
+    queryKey: ['/api/daily-stats', (user as any)?.id, today],
+    enabled: !!(user as any)?.id,
   });
 
   // Fetch recent scans
   const { data: recentScans = [] } = useQuery<FoodScan[]>({
-    queryKey: ['/api/food-scans', user?.id],
-    enabled: !!user?.id,
+    queryKey: ['/api/food-scans', (user as any)?.id],
+    enabled: !!(user as any)?.id,
   });
 
   // Get upload URL mutation
@@ -52,7 +53,7 @@ export default function Home() {
     mutationFn: async ({ imageUrl }: { imageUrl: string }) => {
       const response = await apiRequest('POST', '/api/food-scan/analyze', {
         imageUrl,
-        userId: user?.id,
+        userId: (user as any)?.id,
       });
       return response.json() as Promise<AnalysisResponse>;
     },
@@ -471,18 +472,14 @@ export default function Home() {
                 <p className="text-xs text-white/70 mt-1">or $9.99/month</p>
               </div>
 
-              <Button 
-                className="w-full bg-white text-indigo-600 hover:bg-slate-50 font-semibold"
-                data-testid="button-start-trial"
-                onClick={() => {
-                  toast({
-                    title: "Free Trial Started! 🎉",
-                    description: "Welcome to CalAI Pro! You now have unlimited scans for 7 days.",
-                  });
-                }}
-              >
-                Start 7-day free trial
-              </Button>
+              <Link href="/subscribe">
+                <Button 
+                  className="w-full bg-white text-indigo-600 hover:bg-slate-50 font-semibold"
+                  data-testid="button-start-trial"
+                >
+                  Start 7-day free trial
+                </Button>
+              </Link>
               <p className="text-xs text-white/70 mt-2">Cancel anytime • Terms apply</p>
             </div>
           </CardContent>

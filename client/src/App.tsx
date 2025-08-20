@@ -11,6 +11,7 @@ import Settings from "@/pages/Settings";
 import Scan from "@/pages/Scan";
 import Coach from "@/pages/Coach";
 import Profile from "@/pages/Profile";
+import Subscribe from "@/pages/Subscribe";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
 import { Camera, Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
@@ -119,6 +120,7 @@ function AuthenticatedApp() {
         <Route path="/history" component={History} />
         <Route path="/coach" component={Coach} />
         <Route path="/profile" component={Profile} />
+        <Route path="/subscribe" component={Subscribe} />
         <Route path="/analytics" component={Analytics} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />

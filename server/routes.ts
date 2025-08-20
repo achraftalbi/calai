@@ -7,6 +7,7 @@ import { analyzeFoodImage } from "./services/gemini";
 import { insertFoodScanSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
@@ -199,6 +200,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching daily stats:", error);
       res.status(500).json({ error: "Failed to fetch daily stats" });
+    }
+  });
+
+  // PayPal payment routes
+  app.get("/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/paypal/order", async (req, res) => {
+    // Request body should contain: { intent, amount, currency }
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+
+  // Subscription management endpoints
+  app.post('/api/subscription/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { planType } = req.body; // 'monthly' or 'yearly'
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Calculate subscription end date
+      const now = new Date();
+      const endDate = new Date(now);
+      if (planType === 'yearly') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      } else {
+        endDate.setMonth(endDate.getMonth() + 1);
+      }
+
+      // Update user subscription status
+      const updatedUser = await storage.updateUser(userId, {
+        subscriptionStatus: 'pro',
+        subscriptionEndsAt: endDate,
+      });
+
+      res.json({ 
+        success: true, 
+        user: updatedUser,
+        message: "Subscription activated successfully!" 
+      });
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ error: "Failed to create subscription" });
+    }
+  });
+
+  app.post('/api/subscription/cancel', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const updatedUser = await storage.updateUser(userId, {
+        subscriptionStatus: 'free',
+        subscriptionEndsAt: null,
+      });
+
+      res.json({ 
+        success: true, 
+        user: updatedUser,
+        message: "Subscription cancelled successfully" 
+      });
+    } catch (error) {
+      console.error("Error cancelling subscription:", error);
+      res.status(500).json({ error: "Failed to cancel subscription" });
     }
   });
 
