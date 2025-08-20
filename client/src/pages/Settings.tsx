@@ -31,7 +31,7 @@ export default function Settings() {
   // Mock subscription status - you can change this to test different states
   const isProUser = false;
   const isTrialActive = false; // Set to true to simulate active trial
-  const trialDaysLeft = 0; // Days remaining in trial
+  const trialDaysLeft = 1; // Days remaining in trial
   const remainingScans = isProUser || isTrialActive ? 999 : 3;
 
   return (
