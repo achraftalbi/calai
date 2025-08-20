@@ -13,60 +13,37 @@ export function CalAILogo({ size = 32, className = "" }: CalAILogoProps) {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Rounded square background with CalAI gradient */}
-        <defs>
-          <linearGradient id="calai-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#06B6D4" />
-            <stop offset="100%" stopColor="#22C55E" />
-          </linearGradient>
-        </defs>
-        
-        {/* Main rounded square */}
+        {/* Clean rounded square background */}
         <rect
-          x="5"
-          y="5"
-          width="90"
-          height="90"
-          rx="20"
-          ry="20"
-          fill="url(#calai-gradient)"
+          x="8"
+          y="8"
+          width="84"
+          height="84"
+          rx="18"
+          ry="18"
+          fill="#06B6D4"
         />
         
-        {/* Viewfinder corners */}
-        <g stroke="white" strokeWidth="3" fill="none" strokeLinecap="round">
-          {/* Top left */}
-          <path d="M15 25 L15 15 L25 15" />
-          {/* Top right */}
-          <path d="M75 15 L85 15 L85 25" />
-          {/* Bottom left */}
-          <path d="M15 75 L15 85 L25 85" />
-          {/* Bottom right */}
-          <path d="M85 75 L85 85 L75 85" />
-        </g>
-        
-        {/* Small circle in top right */}
-        <circle cx="78" cy="22" r="3" fill="white" />
-        
-        {/* Apple shape */}
+        {/* Simple apple shape */}
         <path
-          d="M35 40 C35 30 42 25 50 25 C58 25 65 30 65 40 C65 45 63 50 60 54 C58 57 56 60 55 65 C54 70 52 75 50 75 C48 75 46 70 45 65 C44 60 42 57 40 54 C37 50 35 45 35 40 Z"
+          d="M38 45 C38 35 43 30 50 30 C57 30 62 35 62 45 C62 50 60 55 58 59 C56 62 54 65 52 68 C51 71 50 72 50 72 C50 72 49 71 48 68 C46 65 44 62 42 59 C40 55 38 50 38 45 Z"
           fill="white"
         />
         
-        {/* Apple leaf */}
+        {/* Apple leaf - simple green accent */}
         <ellipse
-          cx="55"
-          cy="28"
-          rx="4"
-          ry="2"
+          cx="53"
+          cy="32"
+          rx="3"
+          ry="1.5"
           fill="#22C55E"
-          transform="rotate(30 55 28)"
+          transform="rotate(25 53 32)"
         />
         
         {/* Apple indent at top */}
         <path
-          d="M47 27 C47 25 48 24 50 24 C52 24 53 25 53 27"
-          fill="url(#calai-gradient)"
+          d="M48 32 C48 30.5 49 30 50 30 C51 30 52 30.5 52 32"
+          fill="#06B6D4"
         />
       </svg>
     </div>
