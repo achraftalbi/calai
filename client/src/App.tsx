@@ -14,7 +14,8 @@ import Profile from "@/pages/Profile";
 import Subscribe from "@/pages/Subscribe";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
-import { Camera, Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
+import { Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
+import { CalAILogo } from "@/components/CalAILogo";
 import { useLocation } from "wouter";
 
 function AppHeader() {
@@ -22,9 +23,7 @@ function AppHeader() {
     <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-calai-primary to-calai-secondary rounded-lg flex items-center justify-center">
-            <Camera className="w-5 h-5 text-white" />
-          </div>
+          <CalAILogo size={32} />
           <h1 className="text-xl font-bold text-slate-800" data-testid="text-app-title">CalAI</h1>
         </div>
         <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors" data-testid="button-profile">

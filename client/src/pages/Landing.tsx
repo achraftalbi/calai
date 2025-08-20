@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Zap, Target, BarChart3, Smartphone, Shield } from "lucide-react";
+import { Zap, Target, BarChart3, Smartphone, Shield } from "lucide-react";
+import { CalAILogo } from "@/components/CalAILogo";
 
 export default function Landing() {
   return (
     <div className="max-w-lg mx-auto min-h-screen bg-gradient-to-br from-calai-primary via-calai-primaryDark to-calai-secondary">
       {/* Hero Section */}
       <div className="px-6 pt-12 pb-8 text-center text-white">
-        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Camera className="w-8 h-8 text-white" />
+        <div className="flex justify-center mx-auto mb-6">
+          <CalAILogo size={64} />
         </div>
         
         <h1 className="text-4xl font-bold mb-4" data-testid="text-hero-title">

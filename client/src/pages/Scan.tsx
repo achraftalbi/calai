@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ScanLine, 
-  Camera, 
   BarChart3, 
   Search,
   Star,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { CalAILogo } from "@/components/CalAILogo";
 
 interface FoodItem {
   id: string;
@@ -172,7 +172,7 @@ export default function Scan() {
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Camera className="w-5 h-5" />
+                <CalAILogo size={20} />
                 Scan Your Food
               </CardTitle>
             </CardHeader>

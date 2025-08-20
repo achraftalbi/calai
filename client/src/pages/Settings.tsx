@@ -16,9 +16,9 @@ import {
   Star,
   LogOut,
   Crown,
-  Camera,
   Database
 } from "lucide-react";
+import { CalAILogo } from "@/components/CalAILogo";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
@@ -253,7 +253,7 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label className="flex items-center gap-2">
-                  <Camera className="w-4 h-4" />
+                  <CalAILogo size={16} />
                   High Quality Camera
                 </Label>
                 <p className="text-sm text-slate-500">
