@@ -1,0 +1,207 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222.2 84% 4.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222.2 84% 4.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 84% 4.9%);
+  --primary: hsl(243.4 77.5% 62.4%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(159 67% 45%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(210 40% 94%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --accent: hsl(42 93% 56%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(243.4 77.5% 62.4%);
+  --chart-1: hsl(243.4 77.5% 62.4%);
+  --chart-2: hsl(159 67% 45%);
+  --chart-3: hsl(42 93% 56%);
+  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-5: hsl(341.4894 75.2000% 50.9804%);
+  --radius: 1rem;
+
+  /* CalAI specific colors */
+  --calai-primary: hsl(243.4 77.5% 62.4%);
+  --calai-secondary: hsl(159 67% 45%);
+  --calai-accent: hsl(42 93% 56%);
+  --calai-gradient-from: hsl(243.4 77.5% 62.4%);
+  --calai-gradient-to: hsl(159 67% 45%);
+}
+
+.dark {
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 84% 4.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222.2 84% 4.9%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(243.4 77.5% 62.4%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(159 67% 45%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(42 93% 56%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
+  --ring: hsl(243.4 77.5% 62.4%);
+  --chart-1: hsl(243.4 77.5% 62.4%);
+  --chart-2: hsl(159 67% 45%);
+  --chart-3: hsl(42 93% 56%);
+  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-5: hsl(341.4894 75.2000% 50.9804%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* iOS safe area support */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@layer components {
+  /* Custom gradients for CalAI theme */
+  .calai-gradient {
+    background: linear-gradient(45deg, var(--calai-gradient-from), var(--calai-gradient-to));
+  }
+  
+  .calai-gradient-hover {
+    background: linear-gradient(45deg, hsl(243.4 77.5% 57.4%), hsl(159 67% 40%));
+  }
+
+  /* Camera interface animations */
+  @keyframes scan {
+    0% { 
+      transform: translateY(-100%); 
+      opacity: 0.6; 
+    }
+    50% { 
+      opacity: 1; 
+    }
+    100% { 
+      transform: translateY(100%); 
+      opacity: 0.6; 
+    }
+  }
+
+  .scan-animation {
+    animation: scan 2s linear infinite;
+  }
+
+  /* Loading shimmer effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -200px 0;
+    }
+    100% {
+      background-position: calc(200px + 100%) 0;
+    }
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(214.3 31.8% 91.4%);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(215.4 16.3% 46.9%);
+}
+
+/* Focus styles for accessibility */
+.focus-visible:focus {
+  outline: 2px solid var(--calai-primary);
+  outline-offset: 2px;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Ensure touch targets are at least 44px */
+  button, 
+  [role="button"], 
+  input[type="button"], 
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Improve text readability on small screens */
+  body {
+    font-size: 16px; /* Prevent zoom on iOS */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Optimize input fields for mobile */
+  input, 
+  textarea, 
+  select {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: hsl(0 0% 0%);
+    --ring: hsl(0 0% 0%);
+  }
+  
+  .dark {
+    --border: hsl(0 0% 100%);
+    --ring: hsl(0 0% 100%);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .scan-animation {
+    animation: none;
+  }
+}

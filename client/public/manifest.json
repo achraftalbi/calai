@@ -1,0 +1,74 @@
+{
+  "name": "CalAI - AI Calorie Calculator",
+  "short_name": "CalAI",
+  "description": "AI-powered calorie calculator with food photo recognition and nutritional analysis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/6366f1/ffffff?text=CalAI",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/6366f1/ffffff?text=CalAI",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://via.placeholder.com/390x844/f8fafc/1e293b?text=CalAI+Home",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Home screen with food scanning interface"
+    }
+  ],
+  "features": [
+    "AI food recognition",
+    "Calorie tracking",
+    "Nutritional analysis",
+    "Camera integration",
+    "Offline capability"
+  ],
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "calai-app",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Scan Food",
+      "short_name": "Scan",
+      "description": "Quickly scan food with camera",
+      "url": "/?action=scan",
+      "icons": [
+        {
+          "src": "https://via.placeholder.com/96x96/10b981/ffffff?text=📷",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View History",
+      "short_name": "History",
+      "description": "View scan history",
+      "url": "/history",
+      "icons": [
+        {
+          "src": "https://via.placeholder.com/96x96/f59e0b/ffffff?text=📊",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
