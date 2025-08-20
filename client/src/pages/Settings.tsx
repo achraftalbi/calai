@@ -19,12 +19,14 @@ import {
   Camera,
   Database
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
   const [dailyGoal, setDailyGoal] = useState("1800");
   const [notifications, setNotifications] = useState(true);
   const [cameraQuality, setCameraQuality] = useState(true);
   const [dataSync, setDataSync] = useState(true);
+  const { toast } = useToast();
 
   // Mock subscription status
   const isProUser = false;
@@ -76,6 +78,12 @@ export default function Settings() {
                   size="sm" 
                   className="bg-gradient-to-br from-indigo-600 to-emerald-600"
                   data-testid="button-upgrade-subscription"
+                  onClick={() => {
+                    toast({
+                      title: "Redirecting to Upgrade...",
+                      description: "Taking you to the subscription page.",
+                    });
+                  }}
                 >
                   Upgrade
                 </Button>
@@ -93,6 +101,12 @@ export default function Settings() {
                     variant="outline" 
                     size="sm"
                     data-testid="button-start-free-trial"
+                    onClick={() => {
+                      toast({
+                        title: "Free Trial Started! 🎉",
+                        description: "Welcome to CalAI Pro! You now have unlimited scans for 3 days.",
+                      });
+                    }}
                   >
                     Start Free Trial
                   </Button>

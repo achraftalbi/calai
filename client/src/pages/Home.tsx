@@ -351,6 +351,12 @@ export default function Home() {
               <Button 
                 className="w-full bg-white text-indigo-600 hover:bg-slate-50 font-semibold"
                 data-testid="button-start-trial"
+                onClick={() => {
+                  toast({
+                    title: "Free Trial Started! 🎉",
+                    description: "Welcome to CalAI Pro! You now have unlimited scans for 3 days.",
+                  });
+                }}
               >
                 Start Free Trial
               </Button>
