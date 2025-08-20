@@ -28,9 +28,11 @@ export default function Settings() {
   const [dataSync, setDataSync] = useState(true);
   const { toast } = useToast();
 
-  // Mock subscription status
+  // Mock subscription status - you can change this to test different states
   const isProUser = false;
-  const remainingScans = 3;
+  const isTrialActive = false; // Set to true to simulate active trial
+  const trialDaysLeft = 0; // Days remaining in trial
+  const remainingScans = isProUser || isTrialActive ? 999 : 3;
 
   return (
     <div className="max-w-lg mx-auto pb-20">
@@ -62,12 +64,14 @@ export default function Settings() {
                 
                 <div>
                   <h3 className="font-semibold text-slate-800" data-testid="text-subscription-status">
-                    {isProUser ? "CalAI Pro" : "Free Plan"}
+                    {isProUser ? "CalAI Pro" : isTrialActive ? "Free Trial Active" : "Free Plan"}
                   </h3>
                   <p className="text-sm text-slate-600">
                     {isProUser 
                       ? "Unlimited scans & premium features" 
-                      : `${remainingScans} scans remaining today`
+                      : isTrialActive 
+                        ? `${trialDaysLeft} days left • Unlimited scans`
+                        : `${remainingScans} scans remaining today`
                     }
                   </p>
                 </div>
@@ -80,17 +84,19 @@ export default function Settings() {
                   data-testid="button-upgrade-subscription"
                   onClick={() => {
                     toast({
-                      title: "Redirecting to Upgrade...",
-                      description: "Taking you to the subscription page.",
+                      title: isTrialActive ? "Continue with Pro!" : "Upgrade to Pro!",
+                      description: isTrialActive 
+                        ? "Your trial ends soon. Subscribe to keep unlimited access!" 
+                        : "Get unlimited scans and premium features.",
                     });
                   }}
                 >
-                  Upgrade
+                  {isTrialActive ? "Subscribe Now" : "Upgrade"}
                 </Button>
               )}
             </div>
 
-            {!isProUser && (
+            {!isProUser && !isTrialActive && (
               <>
                 <Separator className="my-4" />
                 <div className="text-center">
@@ -109,6 +115,32 @@ export default function Settings() {
                     }}
                   >
                     Start Free Trial
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {isTrialActive && (
+              <>
+                <Separator className="my-4" />
+                <div className="bg-amber-50 rounded-lg p-3 text-center">
+                  <p className="text-sm text-amber-800 font-medium mb-2">
+                    ⏰ Trial expires in {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-xs text-amber-700 mb-3">
+                    Subscribe now to keep unlimited scanning after your trial ends
+                  </p>
+                  <Button 
+                    size="sm" 
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                    onClick={() => {
+                      toast({
+                        title: "Continue with CalAI Pro! 🚀",
+                        description: "Keep unlimited access when your trial ends.",
+                      });
+                    }}
+                  >
+                    Subscribe for $9.99/month
                   </Button>
                 </div>
               </>
