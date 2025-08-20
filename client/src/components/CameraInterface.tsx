@@ -47,15 +47,36 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
         });
       }
       
+      console.log("MediaStream created:", mediaStream);
+      console.log("Video tracks:", mediaStream.getVideoTracks());
+      
       setStream(mediaStream);
       setIsActive(true);
       
       if (videoRef.current) {
+        console.log("Setting video source...");
         videoRef.current.srcObject = mediaStream;
-        // Ensure video starts playing
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
+        
+        // Force video to play
+        videoRef.current.onloadedmetadata = async () => {
+          console.log("Video metadata loaded");
+          try {
+            await videoRef.current?.play();
+            console.log("Video playing successfully");
+          } catch (playError) {
+            console.error("Error playing video:", playError);
+          }
         };
+        
+        // Also try to play immediately
+        setTimeout(async () => {
+          try {
+            await videoRef.current?.play();
+            console.log("Video play attempt after timeout");
+          } catch (e) {
+            console.log("Timeout play attempt failed:", e);
+          }
+        }, 100);
       }
     } catch (err: any) {
       console.error("Camera error:", err);
@@ -218,6 +239,15 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
           }}
           onError={(e) => {
             console.error("Video element error:", e);
+          }}
+          onLoadedMetadata={() => {
+            console.log("Video metadata loaded event");
+          }}
+          onCanPlay={() => {
+            console.log("Video can play event");
+          }}
+          onPlaying={() => {
+            console.log("Video is now playing");
           }}
         />
         
