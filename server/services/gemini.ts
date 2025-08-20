@@ -41,38 +41,25 @@ Return a JSON response with this exact format:
 
 Be as accurate as possible with nutritional values. If you can't identify the food clearly, set confidence below 0.5.`;
 
-    const contents = [
-      {
-        inlineData: {
-          data: base64Image,
-          mimeType: "image/jpeg",
-        },
-      },
-      systemPrompt,
-    ];
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            calories: { type: "number" },
-            protein: { type: "number" },
-            carbs: { type: "number" },
-            fat: { type: "number" },
-            fiber: { type: "number" },
-            sugar: { type: "number" },
-            sodium: { type: "number" },
-            servingSize: { type: "string" },
-            confidence: { type: "number" },
-          },
-          required: ["name", "calories", "protein", "carbs", "fat", "fiber", "sugar", "sodium", "servingSize", "confidence"],
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: systemPrompt,
+            },
+            {
+              inlineData: {
+                data: base64Image,
+                mimeType: "image/jpeg",
+              },
+            },
+          ],
         },
-      },
-      contents: contents,
+      ],
     });
 
     const rawJson = response.text;
@@ -82,7 +69,21 @@ Be as accurate as possible with nutritional values. If you can't identify the fo
       throw new Error("Empty response from Gemini");
     }
 
-    const analysis: FoodAnalysis = JSON.parse(rawJson);
+    // Extract JSON from the response if it's wrapped in markdown
+    let jsonString = rawJson;
+    if (rawJson.includes('```json')) {
+      const match = rawJson.match(/```json\s*([\s\S]*?)\s*```/);
+      if (match) {
+        jsonString = match[1];
+      }
+    } else if (rawJson.includes('```')) {
+      const match = rawJson.match(/```\s*([\s\S]*?)\s*```/);
+      if (match) {
+        jsonString = match[1];
+      }
+    }
+
+    const analysis: FoodAnalysis = JSON.parse(jsonString);
     
     // Validate the response
     if (!analysis.name || typeof analysis.calories !== 'number') {
