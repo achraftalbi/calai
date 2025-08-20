@@ -6,35 +6,54 @@ import { analyzeFoodImage } from "./services/openai";
 // import { getNutritionData } from "./services/nutrition";
 import { insertFoodScanSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // User management
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-      const user = await storage.createUser(userData);
-      res.json(user);
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(400).json({ error: "Invalid user data" });
-    }
-  });
+  // Auth middleware setup
+  await setupAuth(app);
 
-  app.get("/api/users/:id", async (req, res) => {
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  // Food scanning endpoints
-  app.post("/api/food-scan/upload", async (req, res) => {
+  // User profile management
+  app.put('/api/auth/user/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const updates = req.body;
+      const user = await storage.updateUser(userId, updates);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Start trial endpoint
+  app.post('/api/auth/user/start-trial', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.startTrial(userId);
+      res.json({ success: true, user });
+    } catch (error) {
+      console.error("Error starting trial:", error);
+      res.status(500).json({ error: "Failed to start trial" });
+    }
+  });
+
+  // Food scanning endpoints (protected)
+  app.post("/api/food-scan/upload", isAuthenticated, async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -45,12 +64,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/food-scan/analyze", async (req, res) => {
+  app.post("/api/food-scan/analyze", isAuthenticated, async (req: any, res) => {
     try {
-      const { imageUrl, userId } = req.body;
+      const { imageUrl } = req.body;
+      const userId = req.user.claims.sub; // Get user ID from auth
       
-      if (!imageUrl || !userId) {
-        return res.status(400).json({ error: "imageUrl and userId are required" });
+      if (!imageUrl) {
+        return res.status(400).json({ error: "imageUrl is required" });
+      }
+
+      // Check scan limits for non-pro users
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user has reached daily scan limit
+      const today = new Date().toISOString().split('T')[0];
+      if (user.subscriptionStatus === 'free' && 
+          user.lastScanResetDate !== today) {
+        // Reset daily scans for new day
+        await storage.updateUser(userId, {
+          dailyScansUsed: 0,
+          lastScanResetDate: today,
+        });
+      }
+
+      if (user.subscriptionStatus === 'free' && 
+          (user.dailyScansUsed || 0) >= 3) {
+        return res.status(429).json({ 
+          error: "Daily scan limit reached", 
+          message: "Upgrade to Pro for unlimited scans" 
+        });
       }
 
       // Normalize the object path
@@ -101,6 +146,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fat: finalAnalysis.fat,
       });
 
+      // Update user scan count for free users
+      if (user.subscriptionStatus === 'free') {
+        await storage.updateUser(userId, {
+          dailyScansUsed: (user.dailyScansUsed || 0) + 1,
+        });
+      }
+
       res.json({
         scan: foodScan,
         analysis: finalAnalysis,
@@ -112,8 +164,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user's food scans
-  app.get("/api/food-scans/:userId", async (req, res) => {
+  // Get user's food scans (protected)
+  app.get("/api/food-scans/:userId", isAuthenticated, async (req: any, res) => {
     try {
       const { userId } = req.params;
       const { limit = "10", offset = "0" } = req.query;
@@ -131,8 +183,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get daily stats
-  app.get("/api/daily-stats/:userId/:date", async (req, res) => {
+  // Get daily stats (protected)
+  app.get("/api/daily-stats/:userId/:date", isAuthenticated, async (req: any, res) => {
     try {
       const { userId, date } = req.params;
       const stats = await storage.getDailyStats(userId, date);
