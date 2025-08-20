@@ -4,7 +4,7 @@ import { Camera, Zap, Target, BarChart3, Smartphone, Shield } from "lucide-react
 
 export default function Landing() {
   return (
-    <div className="max-w-lg mx-auto min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-emerald-600">
+    <div className="max-w-lg mx-auto min-h-screen bg-gradient-to-br from-calai-primary via-calai-primaryDark to-calai-secondary">
       {/* Hero Section */}
       <div className="px-6 pt-12 pb-8 text-center text-white">
         <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -20,7 +20,7 @@ export default function Landing() {
         </p>
         
         <Button 
-          className="w-full bg-white text-indigo-600 hover:bg-indigo-50 font-semibold py-4 text-lg"
+          className="w-full bg-white text-calai-primary hover:bg-cyan-50 font-semibold py-4 text-lg"
           onClick={() => window.location.href = "/api/login"}
           data-testid="button-login"
         >
@@ -111,7 +111,7 @@ export default function Landing() {
               Start your free account and get 3 daily scans. Upgrade anytime for unlimited access.
             </p>
             <Button 
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+              className="w-full bg-calai-secondary hover:bg-green-600 text-white font-semibold"
               onClick={() => window.location.href = "/api/login"}
               data-testid="button-cta-login"
             >

@@ -158,7 +158,7 @@ export default function Subscribe() {
   return (
     <div className="max-w-lg mx-auto pb-20 px-4 py-6">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-gradient-to-br from-calai-primary to-calai-secondary rounded-full flex items-center justify-center mx-auto mb-4">
           <Crown className="w-8 h-8 text-white" />
         </div>
         <h1 className="text-2xl font-bold text-slate-800 mb-2" data-testid="text-upgrade-title">Upgrade to CalAI Pro</h1>
@@ -171,7 +171,7 @@ export default function Subscribe() {
         <Card 
           className={`cursor-pointer transition-all border-2 ${
             selectedPlan === 'yearly' 
-              ? 'border-indigo-500 bg-indigo-50' 
+              ? 'border-calai-primary bg-calai-bg' 
               : 'border-slate-200 hover:border-slate-300'
           }`}
           onClick={() => setSelectedPlan('yearly')}

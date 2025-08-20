@@ -282,11 +282,11 @@ export default function Home() {
       {/* Food Analysis Results - Show prominently above camera */}
       {recentScans.length > 0 && (
         <div className="px-4 mb-6">
-          <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl p-1 mb-4">
+          <div className="bg-gradient-to-r from-calai-bg to-cyan-50 rounded-2xl p-1 mb-4">
             <div className="bg-white rounded-xl p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-slate-800">🍽️ Your Food Analysis</h3>
-                <Button variant="ghost" size="sm" className="text-indigo-600">
+                <Button variant="ghost" size="sm" className="text-calai-primary">
                   View All
                 </Button>
               </div>
@@ -436,7 +436,7 @@ export default function Home() {
 
       {/* Pro Subscription Prompt */}
       <div className="px-4 mb-6">
-        <Card className="bg-gradient-to-br from-indigo-600 to-emerald-600 text-white">
+        <Card className="bg-gradient-to-br from-calai-primary to-calai-secondary text-white">
           <CardContent className="p-6">
             <div className="text-center">
               <h3 className="text-lg font-bold mb-2">Upgrade to CalAI Pro</h3>
@@ -474,7 +474,7 @@ export default function Home() {
 
               <Link href="/subscribe">
                 <Button 
-                  className="w-full bg-white text-indigo-600 hover:bg-slate-50 font-semibold"
+                  className="w-full bg-white text-calai-primary hover:bg-slate-50 font-semibold"
                   data-testid="button-start-trial"
                 >
                   Start 7-day free trial

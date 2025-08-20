@@ -162,7 +162,7 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
       <div className={cn("bg-white rounded-2xl p-6 shadow-sm border border-slate-200", className)}>
         <h3 className="text-lg font-semibold text-slate-800 mb-4 text-center">Scan Your Food</h3>
         
-        <div className="bg-gradient-to-br from-indigo-50 to-emerald-50 rounded-2xl h-64 relative overflow-hidden mb-4 border-2 border-dashed border-slate-300 flex items-center justify-center">
+        <div className="bg-gradient-to-br from-cyan-50 to-emerald-50 rounded-2xl h-64 relative overflow-hidden mb-4 border-2 border-dashed border-slate-300 flex items-center justify-center">
           <div className="text-center">
             <Camera className="w-12 h-12 text-slate-400 mx-auto mb-2" />
             <p className="text-slate-500 text-sm">Camera preview will appear here</p>
@@ -179,7 +179,7 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
           <Button 
             onClick={startCamera}
             disabled={isProcessing}
-            className="bg-gradient-to-br from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700"
+            className="bg-gradient-to-br from-calai-primary to-calai-secondary hover:from-calai-primaryDark hover:to-green-600"
             data-testid="button-start-camera"
           >
             <Camera className="w-4 h-4 mr-2" />
@@ -248,8 +248,8 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
         
         {/* Center crosshair */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-16 h-16 border-2 border-indigo-500 rounded-lg flex items-center justify-center">
-            <div className="w-2 h-2 bg-indigo-500 rounded-full" />
+          <div className="w-16 h-16 border-2 border-calai-primary rounded-lg flex items-center justify-center">
+            <div className="w-2 h-2 bg-calai-primary rounded-full" />
           </div>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
         <Button
           onClick={capturePhoto}
           disabled={isProcessing}
-          className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700 rounded-full p-0"
+          className="w-16 h-16 bg-gradient-to-br from-calai-primary to-calai-secondary hover:from-calai-primaryDark hover:to-green-600 rounded-full p-0"
           data-testid="button-capture-photo"
         >
           <Camera className="w-8 h-8" />
