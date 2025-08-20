@@ -53,49 +53,10 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
       console.log("Video track ready state:", mediaStream.getVideoTracks()[0]?.readyState);
       
       setStream(mediaStream);
+      setIsActive(true);
       
-      // Wait a bit for React to render the video element
-      setTimeout(() => {
-        if (videoRef.current) {
-          console.log("Setting video source...");
-          console.log("Video element exists:", !!videoRef.current);
-          
-          // Clear any existing source
-          videoRef.current.srcObject = null;
-          
-          // Set new source
-          videoRef.current.srcObject = mediaStream;
-          
-          // Force video to play
-          videoRef.current.onloadedmetadata = async () => {
-            console.log("Video metadata loaded");
-            console.log("Video dimensions:", videoRef.current?.videoWidth, "x", videoRef.current?.videoHeight);
-            try {
-              await videoRef.current?.play();
-              console.log("Video playing successfully");
-            } catch (playError) {
-              console.error("Error playing video:", playError);
-            }
-          };
-          
-          // Also try to play immediately after a short delay
-          setTimeout(async () => {
-            try {
-              if (videoRef.current) {
-                console.log("Attempting to play video...");
-                await videoRef.current.play();
-                console.log("Video play attempt after timeout successful");
-              }
-            } catch (e) {
-              console.log("Timeout play attempt failed:", e);
-            }
-          }, 200);
-        } else {
-          console.error("Video element not found!");
-        }
-        
-        setIsActive(true);
-      }, 50);
+      // Store the stream for the useEffect to pick up
+      (window as any).pendingStream = mediaStream;
     } catch (err: any) {
       console.error("Camera error:", err);
       let errorMessage = "Unable to access camera. ";
@@ -163,6 +124,46 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
       onCapture(file);
     }
   }, [onCapture]);
+
+  // Connect stream to video element when both are ready
+  useEffect(() => {
+    if (isActive && videoRef.current && stream) {
+      console.log("useEffect: Setting video source...");
+      console.log("useEffect: Video element exists:", !!videoRef.current);
+      console.log("useEffect: Stream exists:", !!stream);
+      
+      // Clear any existing source
+      videoRef.current.srcObject = null;
+      
+      // Set new source
+      videoRef.current.srcObject = stream;
+      
+      // Force video to play
+      videoRef.current.onloadedmetadata = async () => {
+        console.log("Video metadata loaded");
+        console.log("Video dimensions:", videoRef.current?.videoWidth, "x", videoRef.current?.videoHeight);
+        try {
+          await videoRef.current?.play();
+          console.log("Video playing successfully");
+        } catch (playError) {
+          console.error("Error playing video:", playError);
+        }
+      };
+      
+      // Also try to play immediately
+      setTimeout(async () => {
+        try {
+          if (videoRef.current) {
+            console.log("Attempting to play video...");
+            await videoRef.current.play();
+            console.log("Video play attempt successful");
+          }
+        } catch (e) {
+          console.log("Play attempt failed:", e);
+        }
+      }, 100);
+    }
+  }, [isActive, stream]);
 
   useEffect(() => {
     return () => {
