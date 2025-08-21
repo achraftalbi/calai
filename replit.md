@@ -8,6 +8,19 @@ The application combines computer vision AI for food recognition with nutritiona
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes
+
+## August 21, 2025 - Enhanced Automatic Activity Tracking Implemented
+- **Google Fit Integration**: Complete OAuth 2.0 authentication system for automatic activity detection
+- **Enhanced Calorie Calculations**: 30+ activities with scientific MET values for personalized calorie estimation
+- **Real-time Notifications**: Phone notifications for detected walking, running, cycling, swimming activities
+- **Background Sync**: Automatic hourly activity synchronization with manual refresh capability
+- **Comprehensive UI**: Expanded Coach dashboard with Google Fit connection interface and enhanced activity options
+
+**Google API Credentials**: Successfully configured GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
+**Callback URL**: `https://04d06bf7-91eb-4e57-9fb8-11c503c6c11c-00-2vihdi71rs7wg.picard.replit.dev/api/auth/google-fit/callback`
+**Status**: Ready for testing automatic activity tracking and enhanced manual entry with automatic calorie calculations
+
 # System Architecture
 
 ## Frontend Architecture
