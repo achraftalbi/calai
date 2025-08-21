@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { getTodayCoachData, addManualActivity, addManualSteps } from "./services/coach";
+import { updateUserBMR } from "./services/coach";
+import { insertActivitySchema, insertPushSubscriptionSchema, type ManualActivityRequest, type ManualStepsRequest } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { analyzeFoodImage } from "./services/gemini";
 // import { getNutritionData } from "./services/nutrition";
@@ -271,6 +274,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error cancelling subscription:", error);
       res.status(500).json({ error: "Failed to cancel subscription" });
+    }
+  });
+
+  // Coach feature endpoints
+  app.get("/api/coach/today", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const today = new Date().toISOString().split('T')[0];
+      const data = await getTodayCoachData(userId, today);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching coach data:", error);
+      res.status(500).json({ error: "Failed to fetch coach data" });
+    }
+  });
+
+  app.post("/api/manual/activity", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const activityData = req.body as ManualActivityRequest;
+      
+      const activity = await addManualActivity(userId, activityData);
+      res.json({ id: activity.id, activity });
+    } catch (error) {
+      console.error("Error adding manual activity:", error);
+      res.status(500).json({ error: "Failed to add activity" });
+    }
+  });
+
+  app.post("/api/manual/steps", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { date, steps } = req.body as ManualStepsRequest;
+      
+      await addManualSteps(userId, date, steps);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error adding manual steps:", error);
+      res.status(500).json({ error: "Failed to add steps" });
+    }
+  });
+
+  app.post("/api/push/subscribe", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { endpoint, p256dh, auth } = req.body;
+      
+      // TODO: Implement push subscription storage
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error subscribing to push:", error);
+      res.status(500).json({ error: "Failed to subscribe to push notifications" });
+    }
+  });
+
+  app.post("/api/integrations/disconnect", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { provider, deleteData } = req.body;
+      
+      // TODO: Implement provider disconnection
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error disconnecting provider:", error);
+      res.status(500).json({ error: "Failed to disconnect provider" });
+    }
+  });
+
+  // Update user profile with BMR recalculation
+  app.put('/api/auth/user/profile-with-bmr', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const updates = req.body;
+      
+      // Update user profile
+      const user = await storage.updateUser(userId, updates);
+      
+      // Recalculate BMR if weight changed
+      if (updates.weightKg) {
+        await updateUserBMR(userId);
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating profile with BMR:", error);
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 

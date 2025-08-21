@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb, real, boolean, date, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, real, boolean, date, index, uuid, primaryKey, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -31,12 +31,20 @@ export const users = pgTable("users", {
   dailyFatGoal: integer("daily_fat_goal").default(70),
   dailyWaterGoal: integer("daily_water_goal").default(8), // glasses
   
-  // Profile info
+  // Profile info for BMR calculation
   age: integer("age"),
   gender: text("gender"), // male, female, other
   heightCm: integer("height_cm"),
+  weightKg: real("weight_kg"),
   activityLevel: text("activity_level").default("sedentary"), // sedentary, lightly_active, moderately_active, very_active
   goalType: text("goal_type").default("maintain"), // lose_weight, gain_weight, maintain, build_muscle
+  
+  // Units preference
+  units: text("units").default("metric"), // metric, imperial
+  
+  // Coach preferences
+  showNetInHeader: boolean("show_net_in_header").default(false),
+  pushNotificationsEnabled: boolean("push_notifications_enabled").default(false),
   
   // Subscription
   subscriptionStatus: text("subscription_status").default("free"), // free, trial, pro
@@ -210,6 +218,59 @@ export const nutritionDatabase = pgTable("nutrition_database", {
   };
 });
 
+// Coach feature tables
+export const dailyMetrics = pgTable('daily_metrics', {
+  userId: varchar('user_id').references(() => users.id).notNull(),
+  date: date('date').notNull(),
+  intakeKcal: integer('intake_kcal').default(0),   // from food scanner
+  activeKcal: integer('active_kcal').default(0),   // from Fit/Strava/manual
+  bmrKcal: integer('bmr_kcal').default(0),
+  steps: integer('steps').default(0),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (t) => ({ 
+  pk: primaryKey({ columns: [t.userId, t.date] }),
+  userDateIdx: index("daily_metrics_user_date_idx").on(t.userId, t.date),
+}));
+
+export const activities = pgTable('activities', {
+  id: serial('id').primaryKey(),
+  userId: varchar('user_id').references(() => users.id).notNull(),
+  source: varchar('source', { length: 32 }),    // google_fit | strava | manual
+  type: varchar('type', { length: 32 }),        // walk | run | cycle | strength | ...
+  start: timestamp('start'),
+  end: timestamp('end'),
+  steps: integer('steps'),
+  calories: integer('calories'),
+  meta: jsonb('meta'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  userDateIdx: index("activities_user_date_idx").on(table.userId, table.start),
+}));
+
+export const providerTokens = pgTable('provider_tokens', {
+  id: serial('id').primaryKey(),
+  userId: varchar('user_id').references(() => users.id).notNull(),
+  provider: varchar('provider', { length: 32 }), // google_fit | strava
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  expiresAt: timestamp('expires_at'),
+  scope: text('scope'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  userProviderIdx: index("provider_tokens_user_provider_idx").on(table.userId, table.provider),
+}));
+
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: serial('id').primaryKey(),
+  userId: varchar('user_id').references(() => users.id).notNull(),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  userIdx: index("push_subscriptions_user_idx").on(table.userId),
+}));
+
 // Insert schemas for existing tables
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -265,6 +326,26 @@ export const insertNutritionDatabaseSchema = createInsertSchema(nutritionDatabas
   updatedAt: true,
 });
 
+// Insert schemas for Coach tables
+export const insertDailyMetricsSchema = createInsertSchema(dailyMetrics).omit({
+  updatedAt: true,
+});
+
+export const insertActivitySchema = createInsertSchema(activities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProviderTokenSchema = createInsertSchema(providerTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types for existing tables
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -289,6 +370,16 @@ export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
 export type NutritionDatabaseEntry = typeof nutritionDatabase.$inferSelect;
 export type InsertNutritionDatabaseEntry = z.infer<typeof insertNutritionDatabaseSchema>;
 
+// Types for Coach tables
+export type DailyMetrics = typeof dailyMetrics.$inferSelect;
+export type InsertDailyMetrics = z.infer<typeof insertDailyMetricsSchema>;
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type ProviderToken = typeof providerTokens.$inferSelect;
+export type InsertProviderToken = z.infer<typeof insertProviderTokenSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+
 // API response types
 export interface FoodAnalysisResult {
   foodName: string;
@@ -309,4 +400,34 @@ export interface NutritionData {
   fiber?: number;
   sugar?: number;
   sodium?: number;
+}
+
+// Coach API response types
+export interface CoachTodayResponse {
+  date: string;
+  intakeKcal: number;
+  activeKcal: number;
+  bmrKcal: number;
+  steps: number;
+  netKcal: number;
+  sources: string[];
+  activities: Activity[];
+  topDrivers: {
+    burning: { name: string; percentage: number }[];
+    intake: { name: string; percentage: number }[];
+  };
+}
+
+export interface ManualActivityRequest {
+  type: string;
+  start?: string;
+  end?: string;
+  steps?: number;
+  calories?: number;
+  duration?: number; // minutes
+}
+
+export interface ManualStepsRequest {
+  date: string;
+  steps: number;
 }
