@@ -55,6 +55,8 @@ export async function exchangeGoogleFitCode(
   code: string, 
   userId: string
 ): Promise<void> {
+  console.log("Starting Google Fit token exchange for user:", userId);
+  
   const oauth2Client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
@@ -62,10 +64,16 @@ export async function exchangeGoogleFitCode(
   );
 
   const { tokens } = await oauth2Client.getToken(code);
+  console.log("Received tokens from Google:", { 
+    hasAccessToken: !!tokens.access_token,
+    hasRefreshToken: !!tokens.refresh_token,
+    expiryDate: tokens.expiry_date 
+  });
 
   // Store tokens in database
+  console.log("Attempting to store tokens in database for user:", userId);
   try {
-    await db
+    const result = await db
       .insert(providerTokens)
       .values({
         userId,
@@ -75,10 +83,12 @@ export async function exchangeGoogleFitCode(
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         scope: GOOGLE_FIT_SCOPES.join(' '),
       });
+    console.log("Successfully inserted Google Fit tokens for user:", userId);
   } catch (error: any) {
+    console.log("Insert failed, attempting update. Error code:", error.code);
     if (error.code === '23505') { // Unique constraint violation
       // Update existing record
-      await db
+      const updateResult = await db
         .update(providerTokens)
         .set({
           accessToken: tokens.access_token,
@@ -92,10 +102,24 @@ export async function exchangeGoogleFitCode(
             eq(providerTokens.provider, 'google_fit')
           )
         );
+      console.log("Successfully updated Google Fit tokens for user:", userId);
     } else {
+      console.error("Database error storing tokens:", error);
       throw error;
     }
   }
+  
+  // Verify the tokens were saved
+  const [savedToken] = await db
+    .select()
+    .from(providerTokens)
+    .where(
+      and(
+        eq(providerTokens.userId, userId),
+        eq(providerTokens.provider, 'google_fit')
+      )
+    );
+  console.log("Verification - token saved:", !!savedToken);
 }
 
 /**

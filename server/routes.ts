@@ -437,10 +437,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { code, state: userId } = req.query;
       
       if (!code || !userId) {
+        console.error("Missing code or userId:", { code: !!code, userId: !!userId });
         return res.status(400).json({ error: "Missing authorization code or user ID" });
       }
       
+      console.log("Attempting to exchange Google Fit code for user:", userId);
       await exchangeGoogleFitCode(code as string, userId as string);
+      console.log("Google Fit code exchange successful for user:", userId);
       
       // Redirect back to Coach page with success
       res.redirect('/coach?connected=google-fit');
