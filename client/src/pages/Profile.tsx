@@ -3,8 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-// import { Input } from "@/components/ui/input";
-// import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
   User, 
@@ -16,7 +17,11 @@ import {
   Trash2,
   ExternalLink,
   Shield,
-  CreditCard
+  CreditCard,
+  Heart,
+  Scale,
+  Ruler,
+  Calendar
 } from "lucide-react";
 import { Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -34,6 +39,15 @@ export default function Profile() {
     dailyCalorieGoal: (user as any)?.dailyCalorieGoal || 2000
   });
 
+  const [bmrData, setBmrData] = useState({
+    weightKg: (user as any)?.weightKg || '',
+    heightCm: (user as any)?.heightCm || '',
+    age: (user as any)?.age || '',
+    gender: (user as any)?.gender || '',
+  });
+
+  const [isEditingBMR, setIsEditingBMR] = useState(false);
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -42,11 +56,70 @@ export default function Profile() {
     );
   }
 
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: any) => apiRequest('PUT', '/api/auth/user/profile', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      setIsEditing(false);
+      toast({
+        title: "Profile Updated",
+        description: "Your changes have been saved successfully."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // BMR update mutation
+  const updateBMRMutation = useMutation({
+    mutationFn: (data: any) => apiRequest('PUT', '/api/auth/user/profile-with-bmr', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/coach/today'] });
+      setIsEditingBMR(false);
+      toast({
+        title: "BMR Data Updated",
+        description: "Your energy balance calculations have been updated."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update BMR data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleSaveProfile = () => {
-    setIsEditing(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your changes have been saved successfully."
+    updateProfileMutation.mutate(profileData);
+  };
+
+  const handleSaveBMR = () => {
+    const weightKg = parseFloat(bmrData.weightKg);
+    const heightCm = parseFloat(bmrData.heightCm);
+    const age = parseInt(bmrData.age);
+
+    if (!weightKg || !heightCm || !age || !bmrData.gender) {
+      toast({
+        title: "Invalid Data",
+        description: "Please fill in all BMR fields with valid values.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    updateBMRMutation.mutate({
+      weightKg,
+      heightCm,
+      age,
+      gender: bmrData.gender
     });
   };
 
@@ -196,9 +269,122 @@ export default function Profile() {
           </div>
 
           {isEditing && (
-            <Button onClick={handleSaveProfile} className="w-full">
-              Save Changes
+            <Button 
+              onClick={handleSaveProfile} 
+              disabled={updateProfileMutation.isPending}
+              className="w-full"
+            >
+              {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* BMR Setup */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Heart className="w-5 h-5" />
+              BMR Setup
+            </div>
+            {!isEditingBMR && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditingBMR(true)}>
+                {(user as any)?.weightKg ? 'Edit' : 'Set Up'}
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!isEditingBMR ? (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">Weight</span>
+                <span className="font-medium">{(user as any)?.weightKg ? `${(user as any).weightKg} kg` : 'Not set'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">Height</span>
+                <span className="font-medium">{(user as any)?.heightCm ? `${(user as any).heightCm} cm` : 'Not set'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">Age</span>
+                <span className="font-medium">{(user as any)?.age ? `${(user as any).age} years` : 'Not set'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">Gender</span>
+                <span className="font-medium capitalize">{(user as any)?.gender || 'Not set'}</span>
+              </div>
+              {!(user as any)?.weightKg && (
+                <div className="p-3 bg-calai-bg rounded-lg">
+                  <p className="text-sm text-slate-600">Set up your BMR data to enable energy balance calculations in the Coach feature.</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="weight">Weight (kg)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    placeholder="70"
+                    value={bmrData.weightKg}
+                    onChange={(e) => setBmrData(prev => ({ ...prev, weightKg: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="height">Height (cm)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    placeholder="175"
+                    value={bmrData.heightCm}
+                    onChange={(e) => setBmrData(prev => ({ ...prev, heightCm: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="age">Age</Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    placeholder="30"
+                    value={bmrData.age}
+                    onChange={(e) => setBmrData(prev => ({ ...prev, age: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={bmrData.gender} onValueChange={(value) => setBmrData(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleSaveBMR} 
+                  disabled={updateBMRMutation.isPending}
+                  className="flex-1"
+                >
+                  {updateBMRMutation.isPending ? 'Saving...' : 'Save BMR Data'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditingBMR(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -214,7 +400,7 @@ export default function Profile() {
         <CardContent className="space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-slate-600">Daily Calorie Goal</span>
-            <span className="font-semibold">{(user as any)?.dailyCalorieGoal || 2000} cal</span>
+            <span className="font-semibold">{(user as any)?.dailyCalorieGoal || 2000} kcal</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-slate-600">Goal Type</span>

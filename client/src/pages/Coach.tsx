@@ -196,17 +196,17 @@ export default function CoachNew() {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-calai-primary">{data?.intakeKcal || 0}</div>
-                <div className="text-xs text-slate-600">Eaten</div>
+                <div className="text-xs text-slate-600">Eaten (kcal)</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-calai-accent">{(data?.bmrKcal || 0) + (data?.activeKcal || 0)}</div>
-                <div className="text-xs text-slate-600">Burned</div>
+                <div className="text-xs text-slate-600">Burned (kcal)</div>
               </div>
               <div className={`${getNetCaloriesBgColor(data?.netKcal || 0)} rounded-lg p-2`}>
                 <div className={`text-2xl font-bold ${getNetCaloriesColor(data?.netKcal || 0)}`}>
                   {data?.netKcal > 0 ? '+' : ''}{data?.netKcal || 0}
                 </div>
-                <div className="text-xs text-slate-600">Net</div>
+                <div className="text-xs text-slate-600">Net (kcal)</div>
               </div>
             </div>
 
@@ -219,9 +219,14 @@ export default function CoachNew() {
                 <span>{data?.bmrKcal || 0} kcal</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Active Calories</span>
+                <span>Activities</span>
                 <span>{data?.activeKcal || 0} kcal</span>
               </div>
+              {data?.bmrKcal === 0 && (
+                <div className="text-xs text-slate-500 italic">
+                  Set up BMR in Profile to see energy calculations
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
