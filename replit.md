@@ -10,17 +10,22 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## August 21, 2025 - Enhanced Automatic Activity Tracking Implemented
-- **Google Fit Integration**: Complete OAuth 2.0 authentication system for automatic activity detection
+## August 21, 2025 - Zero-Setup Device Motion Tracking Added
+- **Device Motion Service**: Built-in step counting and activity detection using phone's native sensors
+- **No External Apps Required**: Works without Google Fit, Apple Health, or any third-party app setup
+- **Real-time Activity Detection**: Automatic walking and running detection with instant notifications
+- **Smart Activity Logging**: Activities of 2+ minutes automatically logged with calorie calculations
 - **Enhanced Calorie Calculations**: 30+ activities with scientific MET values for personalized calorie estimation
-- **Real-time Notifications**: Phone notifications for detected walking, running, cycling, swimming activities
-- **Background Sync**: Automatic hourly activity synchronization with manual refresh capability
-- **Comprehensive UI**: Expanded Coach dashboard with Google Fit connection interface and enhanced activity options
+- **Background Processing**: Continuous motion monitoring while app is open with activity state management
 
-**Google API Credentials**: Successfully configured GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
-**Callback URL**: `https://04d06bf7-91eb-4e57-9fb8-11c503c6c11c-00-2vihdi71rs7wg.picard.replit.dev/api/auth/google-fit/callback`
-**Google Cloud Console Setup**: Required for OAuth verification - see GOOGLE_SETUP_INSTRUCTIONS.md
-**Status**: Enhanced calorie calculations ready for testing, Google Fit connection pending Cloud Console setup
+**Key Features:**
+- Single permission request for device motion access
+- Real-time step counting and activity classification
+- Automatic activity notifications when walking/running detected
+- Zero configuration - works immediately after permission granted
+- Fallback Google Fit integration for users who prefer external app sync
+
+**Status**: Zero-setup device motion tracking fully implemented and ready for testing
 
 # System Architecture
 
@@ -63,13 +68,18 @@ Preferred communication style: Simple, everyday language.
 - **Touch-Optimized UI**: Mobile-first responsive design with touch-friendly interactions
 - **Bottom Navigation**: Native mobile app navigation pattern for improved usability
 - **Image Upload**: Multiple upload methods (camera capture, file selection) with Uppy integration
-- **Automatic Activity Tracking**: Google Fit integration for background fitness monitoring with phone notifications
+- **Zero-Setup Activity Tracking**: Built-in device motion detection requiring no external app configuration
+- **Google Fit Integration**: Optional external sync for users who prefer comprehensive health app connectivity
 
-## Enhanced Calorie Calculation System
+## Enhanced Activity Detection and Calorie System
+- **Device Motion Tracking**: Native phone sensor integration for real-time step counting and activity detection
 - **MET-Based Calculations**: Scientific Metabolic Equivalent of Task values for 30+ activities
 - **Personalized Formula**: `(MET × weight × 3.5) / 200` for accurate calorie estimation
-- **Activity Recognition**: Automatic classification of walking, running, cycling, swimming, strength training
-- **Real-time Synchronization**: Background sync with Google Fit every hour plus manual refresh
+- **Dual Detection Modes**: 
+  - Primary: Zero-setup device motion sensors (no external apps required)
+  - Secondary: Google Fit integration for comprehensive health data sync
+- **Smart Activity Classification**: Automatic walking/running detection with 2+ minute minimum logging
+- **Real-time Notifications**: Instant activity detection alerts with background processing
 
 ## Performance and User Experience
 - **Real-time Processing**: Streaming image analysis with progress indicators

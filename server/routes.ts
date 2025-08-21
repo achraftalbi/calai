@@ -475,6 +475,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Device motion activity logging
+  app.post("/api/device-motion/activity", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { type, start, end, duration, steps, source } = req.body;
+
+      // Get user weight for calorie calculations
+      const user = await storage.getUser(userId);
+      const weightKg = user?.weightKg || 70;
+
+      // Calculate calories using the same system as manual activities
+      const { calculateActivityCalories } = await import("./services/activityCalculations");
+      const calculationDetails = calculateActivityCalories(type, duration, weightKg);
+
+      // Store the activity
+      const [activity] = await db
+        .insert(activities)
+        .values({
+          userId,
+          source: source || 'device_motion',
+          type,
+          start: new Date(start),
+          end: new Date(end),
+          calories: calculationDetails.calories,
+          steps: steps || null,
+          meta: {
+            duration,
+            steps,
+            calculationDetails,
+            detectedAutomatically: true,
+          },
+        })
+        .returning();
+
+      console.log(`Device motion activity logged: ${type} for ${duration} minutes, ${calculationDetails.calories} calories`);
+
+      res.json({
+        success: true,
+        activity,
+        calories: calculationDetails.calories,
+      });
+    } catch (error) {
+      console.error("Error logging device motion activity:", error);
+      res.status(500).json({ error: "Failed to log device motion activity" });
+    }
+  });
+
   // Serve food images
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { GoogleFitIntegration } from "@/components/GoogleFitIntegration";
 import { GoogleFitTroubleshooting } from "@/components/GoogleFitTroubleshooting";
+import { DeviceMotionTracker } from "@/components/DeviceMotionTracker";
 
 export default function CoachNew() {
   const { user } = useAuth();
@@ -468,6 +469,11 @@ export default function CoachNew() {
       {/* Google Fit Integration */}
       <div className="px-4 mb-6">
         <GoogleFitIntegration />
+      </div>
+
+      {/* Device Motion Tracker - Zero Setup Alternative */}
+      <div className="px-4 mb-6">
+        <DeviceMotionTracker />
       </div>
 
       {/* Google Fit Troubleshooting */}
