@@ -265,7 +265,29 @@ export async function syncGoogleFitSteps(
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
 
+  console.log("Fetching steps from Google Fit API for date:", date.toISOString().split('T')[0]);
+  console.log("Time range:", startOfDay.toISOString(), "to", endOfDay.toISOString());
+
   try {
+    // Try multiple data sources for step counting
+    const requestBody = {
+      aggregateBy: [
+        {
+          dataTypeName: 'com.google.step_count.delta',
+          dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps'
+        },
+        {
+          dataTypeName: 'com.google.step_count.delta'
+          // No dataSourceId to get all available sources
+        }
+      ],
+      bucketByTime: { durationMillis: 86400000 }, // 24 hours
+      startTimeMillis: startOfDay.getTime(),
+      endTimeMillis: endOfDay.getTime(),
+    };
+
+    console.log("Google Fit steps API request body:", JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(
       'https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate',
       {
@@ -274,35 +296,35 @@ export async function syncGoogleFitSteps(
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          aggregateBy: [{
-            dataTypeName: 'com.google.step_count.delta',
-            dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps'
-          }],
-          bucketByTime: { durationMillis: 86400000 }, // 24 hours
-          startTimeMillis: startOfDay.getTime(),
-          endTimeMillis: endOfDay.getTime(),
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
+    console.log("Google Fit steps API response status:", response.status);
+
     if (!response.ok) {
-      throw new Error(`Google Fit API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error("Google Fit steps API error:", errorText);
+      throw new Error(`Google Fit API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log("Google Fit steps API response data:", JSON.stringify(data, null, 2));
     
     let totalSteps = 0;
     (data.bucket || []).forEach((bucket: any) => {
       (bucket.dataset || []).forEach((dataset: any) => {
         (dataset.point || []).forEach((point: any) => {
           if (point.value && point.value[0] && point.value[0].intVal) {
-            totalSteps += point.value[0].intVal;
+            const stepCount = point.value[0].intVal;
+            console.log("Found step data point:", stepCount);
+            totalSteps += stepCount;
           }
         });
       });
     });
 
+    console.log("Total steps calculated:", totalSteps);
     return totalSteps;
   } catch (error) {
     console.error('Failed to fetch Google Fit steps:', error);
