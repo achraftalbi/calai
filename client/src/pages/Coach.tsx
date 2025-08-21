@@ -31,6 +31,7 @@ import {
 import { GoogleFitIntegration } from "@/components/GoogleFitIntegration";
 import { GoogleFitTroubleshooting } from "@/components/GoogleFitTroubleshooting";
 import { DeviceMotionTracker } from "@/components/DeviceMotionTracker";
+import { StravaIntegration } from "@/components/StravaIntegration";
 
 export default function CoachNew() {
   const { user } = useAuth();
@@ -474,6 +475,11 @@ export default function CoachNew() {
       {/* Device Motion Tracker - Zero Setup Alternative */}
       <div className="px-4 mb-6">
         <DeviceMotionTracker />
+      </div>
+
+      {/* Strava Integration - Complete Sports Coverage */}
+      <div className="px-4 mb-6">
+        <StravaIntegration />
       </div>
 
       {/* Google Fit Troubleshooting */}

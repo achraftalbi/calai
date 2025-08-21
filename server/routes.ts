@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { getTodayCoachData, addManualActivity, addManualSteps } from "./services/coach";
 import { updateUserBMR } from "./services/coach";
 import { getGoogleFitAuthUrl, exchangeGoogleFitCode, importGoogleFitData, disconnectGoogleFit } from "./services/googleFit";
+import { getStravaAuthUrl, exchangeStravaCode, importStravaData, checkStravaConnection, disconnectStrava } from "./services/strava";
 import { insertActivitySchema, insertPushSubscriptionSchema, type ManualActivityRequest, type ManualStepsRequest, providerTokens, dailyStats, activities, dailyMetrics } from "@shared/schema";
 import { count, and, eq } from "drizzle-orm";
 import { db } from "./db";
@@ -519,6 +520,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error logging device motion activity:", error);
       res.status(500).json({ error: "Failed to log device motion activity" });
+    }
+  });
+
+  // Strava Integration Routes
+  app.get("/api/strava/auth", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const authUrl = getStravaAuthUrl(userId);
+      res.json({ authUrl });
+    } catch (error) {
+      console.error("Error generating Strava auth URL:", error);
+      res.status(500).json({ error: "Failed to generate auth URL" });
+    }
+  });
+
+  app.get("/api/strava/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const status = await checkStravaConnection(userId);
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting Strava status:", error);
+      res.status(500).json({ error: "Failed to get Strava status" });
+    }
+  });
+
+  app.get("/api/strava/callback", async (req, res) => {
+    try {
+      const { code, state: userId, error } = req.query;
+      
+      if (error) {
+        console.error("Strava OAuth error:", error);
+        return res.redirect('/coach?error=strava-denied');
+      }
+      
+      if (!code || !userId) {
+        console.error("Missing code or userId:", { code: !!code, userId: !!userId });
+        return res.status(400).json({ error: "Missing authorization code or user ID" });
+      }
+      
+      console.log("Attempting to exchange Strava code for user:", userId);
+      await exchangeStravaCode(code as string, userId as string);
+      console.log("Strava code exchange successful for user:", userId);
+      
+      // Redirect back to Coach page with success
+      res.redirect('/coach?connected=strava');
+    } catch (error) {
+      console.error("Error exchanging Strava code:", error);
+      res.redirect('/coach?error=strava-failed');
+    }
+  });
+
+  app.post("/api/strava/sync", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await importStravaData(userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error syncing Strava data:", error);
+      res.status(500).json({ error: "Failed to sync Strava data" });
+    }
+  });
+
+  app.delete("/api/strava/disconnect", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await disconnectStrava(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error disconnecting Strava:", error);
+      res.status(500).json({ error: "Failed to disconnect Strava" });
     }
   });
 
