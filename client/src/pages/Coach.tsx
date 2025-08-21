@@ -29,6 +29,7 @@ import {
   Zap
 } from "lucide-react";
 import { GoogleFitIntegration } from "@/components/GoogleFitIntegration";
+import { GoogleFitTroubleshooting } from "@/components/GoogleFitTroubleshooting";
 
 export default function CoachNew() {
   const { user } = useAuth();
@@ -467,6 +468,11 @@ export default function CoachNew() {
       {/* Google Fit Integration */}
       <div className="px-4 mb-6">
         <GoogleFitIntegration />
+      </div>
+
+      {/* Google Fit Troubleshooting */}
+      <div className="px-4 mb-6">
+        <GoogleFitTroubleshooting />
       </div>
     </div>
   );

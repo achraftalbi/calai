@@ -111,7 +111,7 @@ export function GoogleFitIntegration() {
     );
   }
 
-  const isConnected = status?.connected || false;
+  const isConnected = (status as any)?.connected || false;
 
   return (
     <Card>
@@ -178,18 +178,18 @@ export function GoogleFitIntegration() {
           <>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{status?.todaySteps || 0}</div>
+                <div className="text-2xl font-bold text-green-600">{(status as any)?.todaySteps || 0}</div>
                 <div className="text-xs text-slate-600">Steps Today</div>
               </div>
               <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{status?.totalActivities || 0}</div>
+                <div className="text-2xl font-bold text-blue-600">{(status as any)?.totalActivities || 0}</div>
                 <div className="text-xs text-slate-600">Activities Synced</div>
               </div>
             </div>
             
-            {status?.lastSync && (
+            {(status as any)?.lastSync && (
               <div className="text-sm text-slate-600 text-center">
-                Last sync: {new Date(status.lastSync).toLocaleString()}
+                Last sync: {new Date((status as any).lastSync).toLocaleString()}
               </div>
             )}
             
