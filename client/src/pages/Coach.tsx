@@ -317,14 +317,35 @@ export default function CoachNew() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="walk">Walking</SelectItem>
-                          <SelectItem value="run">Running</SelectItem>
-                          <SelectItem value="cycle">Cycling</SelectItem>
-                          <SelectItem value="swim">Swimming</SelectItem>
-                          <SelectItem value="strength">Strength Training</SelectItem>
-                          <SelectItem value="yoga">Yoga</SelectItem>
+                          <SelectItem value="walk">Walking (3.5 mph)</SelectItem>
+                          <SelectItem value="walk_brisk">Brisk Walking (4.0 mph)</SelectItem>
+                          <SelectItem value="walk_uphill">Walking Uphill</SelectItem>
+                          <SelectItem value="jog">Jogging</SelectItem>
+                          <SelectItem value="run">Running (6.0 mph)</SelectItem>
+                          <SelectItem value="run_fast">Fast Running (7.5 mph)</SelectItem>
+                          <SelectItem value="cycle_light">Cycling - Leisure</SelectItem>
+                          <SelectItem value="cycle">Cycling - Moderate</SelectItem>
+                          <SelectItem value="cycle_vigorous">Cycling - Vigorous</SelectItem>
+                          <SelectItem value="swim">Swimming - Freestyle</SelectItem>
+                          <SelectItem value="swim_backstroke">Swimming - Backstroke</SelectItem>
+                          <SelectItem value="swim_vigorous">Swimming - Vigorous</SelectItem>
+                          <SelectItem value="strength">Weight Lifting</SelectItem>
+                          <SelectItem value="strength_vigorous">Weight Lifting - Vigorous</SelectItem>
+                          <SelectItem value="bodyweight">Bodyweight Exercises</SelectItem>
+                          <SelectItem value="yoga">Yoga - Hatha</SelectItem>
+                          <SelectItem value="yoga_power">Power Yoga</SelectItem>
+                          <SelectItem value="stretching">Stretching</SelectItem>
                           <SelectItem value="dance">Dancing</SelectItem>
-                          <SelectItem value="sports">Sports</SelectItem>
+                          <SelectItem value="dance_aerobic">Aerobic Dance</SelectItem>
+                          <SelectItem value="basketball">Basketball</SelectItem>
+                          <SelectItem value="tennis">Tennis</SelectItem>
+                          <SelectItem value="soccer">Soccer</SelectItem>
+                          <SelectItem value="volleyball">Volleyball</SelectItem>
+                          <SelectItem value="hiking">Hiking</SelectItem>
+                          <SelectItem value="climbing">Rock Climbing</SelectItem>
+                          <SelectItem value="rowing">Rowing</SelectItem>
+                          <SelectItem value="elliptical">Elliptical Trainer</SelectItem>
+                          <SelectItem value="sports">Other Sports</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -343,10 +364,13 @@ export default function CoachNew() {
                       <Input
                         id="calories"
                         type="number"
-                        placeholder="Leave empty for estimate"
+                        placeholder="Auto-calculated from your weight & activity"
                         value={activityForm.calories}
                         onChange={(e) => setActivityForm({...activityForm, calories: e.target.value})}
                       />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Leave empty for automatic MET-based calculation
+                      </p>
                     </div>
                     <Button 
                       onClick={handleAddActivity} 
@@ -375,6 +399,7 @@ export default function CoachNew() {
                       </div>
                       <div className="text-xs text-slate-600 flex items-center gap-2">
                         {activity.calories && <span>{activity.calories} kcal</span>}
+                        {activity.meta?.duration && <span>{activity.meta.duration} min</span>}
                         {activity.start && (
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />

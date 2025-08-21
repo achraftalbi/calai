@@ -5,6 +5,7 @@ import {
   type DailyMetrics, type Activity, type User, type CoachTodayResponse 
 } from "@shared/schema";
 import { calculateBMR, calculateStepsCalories, calculateNetCalories } from "./bmr";
+import { calculateActivityCalories } from "./activityCalculations";
 
 /**
  * Get today's coach data for a user
@@ -134,7 +135,7 @@ export async function getTodayCoachData(userId: string, date: string): Promise<C
 }
 
 /**
- * Add manual activity
+ * Add manual activity with enhanced calorie calculation
  */
 export async function addManualActivity(
   userId: string,
@@ -147,6 +148,10 @@ export async function addManualActivity(
     duration?: number; // minutes
   }
 ): Promise<Activity> {
+  // Get user weight for accurate calorie calculation
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  const weightKg = user?.weightKg || 70; // Default weight if not set
+
   const now = new Date();
   const start = activityData.start ? new Date(activityData.start) : now;
   const end = activityData.end 
@@ -155,12 +160,13 @@ export async function addManualActivity(
     ? new Date(start.getTime() + activityData.duration * 60000)
     : start;
 
-  // Estimate calories if not provided
+  // Estimate calories if not provided using enhanced MET-based calculation
   let calories = activityData.calories;
+  let calculationDetails = null;
+  
   if (!calories && activityData.duration) {
-    // Simple calorie estimation based on activity type and duration
-    const caloriesPerMinute = getCaloriesPerMinute(activityData.type);
-    calories = Math.round(activityData.duration * caloriesPerMinute);
+    calculationDetails = calculateActivityCalories(activityData.type, activityData.duration, weightKg);
+    calories = calculationDetails.calories;
   }
 
   const [activity] = await db
@@ -173,7 +179,12 @@ export async function addManualActivity(
       end,
       steps: activityData.steps,
       calories,
-      meta: { duration: activityData.duration },
+      meta: { 
+        duration: activityData.duration,
+        weightKg,
+        calculationDetails,
+        estimatedCaloriesPerMinute: calories && activityData.duration ? Math.round(calories / activityData.duration) : null
+      },
     })
     .returning();
 
@@ -211,22 +222,27 @@ export async function addManualSteps(userId: string, date: string, steps: number
 }
 
 /**
- * Simple calorie estimation per minute by activity type
+ * Enhanced calorie estimation per minute by activity type and body weight
+ * Based on MET (Metabolic Equivalent of Task) values
  */
-function getCaloriesPerMinute(activityType: string): number {
-  const calorieRates: Record<string, number> = {
-    'walk': 5,
-    'run': 12,
-    'cycle': 8,
-    'swim': 10,
-    'strength': 6,
-    'yoga': 3,
-    'dance': 7,
-    'sports': 9,
-    'default': 5,
+function getCaloriesPerMinute(activityType: string, weightKg: number = 70): number {
+  // MET values for different activities (multiply by weight in kg and divide by 60 for per-minute)
+  const metValues: Record<string, number> = {
+    'walk': 3.5,      // Moderate pace (3.5 mph)
+    'run': 9.8,       // 6 mph pace
+    'cycle': 6.8,     // Moderate effort, 12-14 mph
+    'swim': 8.3,      // Moderate effort, freestyle
+    'strength': 5.0,  // General weight lifting
+    'yoga': 2.5,      // Hatha yoga
+    'dance': 5.0,     // General dancing
+    'sports': 6.5,    // General sports activities
+    'default': 3.5,
   };
 
-  return calorieRates[activityType.toLowerCase()] || calorieRates.default;
+  const met = metValues[activityType.toLowerCase()] || metValues.default;
+  
+  // MET formula: calories/minute = (MET × weight in kg × 3.5) / 200
+  return Math.round((met * weightKg * 3.5) / 200);
 }
 
 /**
