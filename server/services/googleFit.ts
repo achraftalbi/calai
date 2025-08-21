@@ -64,25 +64,38 @@ export async function exchangeGoogleFitCode(
   const { tokens } = await oauth2Client.getToken(code);
 
   // Store tokens in database
-  await db
-    .insert(providerTokens)
-    .values({
-      userId,
-      provider: 'google_fit',
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-      scope: GOOGLE_FIT_SCOPES.join(' '),
-    })
-    .onConflictDoUpdate({
-      target: [providerTokens.userId, providerTokens.provider],
-      set: {
+  try {
+    await db
+      .insert(providerTokens)
+      .values({
+        userId,
+        provider: 'google_fit',
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         scope: GOOGLE_FIT_SCOPES.join(' '),
-      },
-    });
+      });
+  } catch (error: any) {
+    if (error.code === '23505') { // Unique constraint violation
+      // Update existing record
+      await db
+        .update(providerTokens)
+        .set({
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          scope: GOOGLE_FIT_SCOPES.join(' '),
+        })
+        .where(
+          and(
+            eq(providerTokens.userId, userId),
+            eq(providerTokens.provider, 'google_fit')
+          )
+        );
+    } else {
+      throw error;
+    }
+  }
 }
 
 /**
