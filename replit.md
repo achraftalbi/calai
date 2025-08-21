@@ -19,7 +19,8 @@ Preferred communication style: Simple, everyday language.
 
 **Google API Credentials**: Successfully configured GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
 **Callback URL**: `https://04d06bf7-91eb-4e57-9fb8-11c503c6c11c-00-2vihdi71rs7wg.picard.replit.dev/api/auth/google-fit/callback`
-**Status**: Ready for testing automatic activity tracking and enhanced manual entry with automatic calorie calculations
+**Google Cloud Console Setup**: Required for OAuth verification - see GOOGLE_SETUP_INSTRUCTIONS.md
+**Status**: Enhanced calorie calculations ready for testing, Google Fit connection pending Cloud Console setup
 
 # System Architecture
 
