@@ -211,6 +211,9 @@ export async function syncGoogleFitActivities(
   const startTimeMillis = startDate.getTime();
   const endTimeMillis = endDate.getTime();
 
+  console.log("Making Google Fit sessions API call for user:", userId);
+  console.log("API URL:", `https://www.googleapis.com/fitness/v1/users/me/sessions?startTime=${new Date(startTimeMillis).toISOString()}&endTime=${new Date(endTimeMillis).toISOString()}`);
+
   try {
     const response = await fetch(
       `https://www.googleapis.com/fitness/v1/users/me/sessions?startTime=${new Date(startTimeMillis).toISOString()}&endTime=${new Date(endTimeMillis).toISOString()}`,
@@ -222,11 +225,16 @@ export async function syncGoogleFitActivities(
       }
     );
 
+    console.log("Google Fit API response status:", response.status);
+
     if (!response.ok) {
-      throw new Error(`Google Fit API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error("Google Fit API error response:", errorText);
+      throw new Error(`Google Fit API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log("Google Fit API response data:", JSON.stringify(data, null, 2));
     
     return (data.session || []).map((session: any) => ({
       name: session.name || mapGoogleFitActivityType(session.activityType),
@@ -313,9 +321,13 @@ export async function importGoogleFitData(userId: string): Promise<{
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
+  console.log("Starting Google Fit data import for user:", userId);
+  console.log("Fetching activities from:", yesterday.toISOString(), "to:", today.toISOString());
+
   try {
     // Sync activities from last 24 hours
     const fitActivities = await syncGoogleFitActivities(userId, yesterday, today);
+    console.log("Google Fit activities received:", fitActivities.length, fitActivities);
     
     let activitiesImported = 0;
     
@@ -367,7 +379,9 @@ export async function importGoogleFitData(userId: string): Promise<{
     }
 
     // Sync today's steps
+    console.log("Fetching steps for today:", today.toISOString().split('T')[0]);
     const todaySteps = await syncGoogleFitSteps(userId, today);
+    console.log("Today's steps from Google Fit:", todaySteps);
     const todayDate = today.toISOString().split('T')[0];
     
     // Update daily metrics with steps
