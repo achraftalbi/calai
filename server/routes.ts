@@ -3,7 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getTodayCoachData, addManualActivity, addManualSteps } from "./services/coach";
 import { updateUserBMR } from "./services/coach";
-import { insertActivitySchema, insertPushSubscriptionSchema, type ManualActivityRequest, type ManualStepsRequest } from "@shared/schema";
+import { getGoogleFitAuthUrl, exchangeGoogleFitCode, importGoogleFitData, disconnectGoogleFit } from "./services/googleFit";
+import { insertActivitySchema, insertPushSubscriptionSchema, type ManualActivityRequest, type ManualStepsRequest, providerTokens, dailyStats, activities, dailyMetrics } from "@shared/schema";
+import { count, and, eq } from "drizzle-orm";
+import { db } from "./db";
 import { ObjectStorageService } from "./objectStorage";
 import { analyzeFoodImage } from "./services/gemini";
 // import { getNutritionData } from "./services/nutrition";
@@ -360,6 +363,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating profile with BMR:", error);
       res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Google Fit integration endpoints
+  app.get("/api/google-fit/auth", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const authUrl = getGoogleFitAuthUrl(userId);
+      res.json({ authUrl });
+    } catch (error) {
+      console.error("Error getting Google Fit auth URL:", error);
+      res.status(500).json({ error: "Failed to get authorization URL" });
+    }
+  });
+
+  // Add Google Fit status endpoint
+  app.get("/api/google-fit/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check if user has Google Fit token
+      const [tokenRecord] = await db
+        .select()
+        .from(providerTokens)
+        .where(
+          and(
+            eq(providerTokens.userId, userId),
+            eq(providerTokens.provider, 'google_fit')
+          )
+        );
+      
+      if (!tokenRecord) {
+        return res.json({ connected: false });
+      }
+
+      // Get activity count and steps data
+      const [activityCount] = await db
+        .select({ count: count() })
+        .from(activities)
+        .where(
+          and(
+            eq(activities.userId, userId),
+            eq(activities.source, 'google_fit')
+          )
+        );
+
+      const today = new Date().toISOString().split('T')[0];
+      const [todayStats] = await db
+        .select()
+        .from(dailyMetrics)
+        .where(
+          and(
+            eq(dailyMetrics.userId, userId),
+            eq(dailyMetrics.date, today)
+          )
+        );
+
+      res.json({
+        connected: true,
+        lastSync: tokenRecord.createdAt?.toISOString(),
+        totalActivities: activityCount?.count || 0,
+        todaySteps: todayStats?.steps || 0,
+      });
+    } catch (error) {
+      console.error("Error getting Google Fit status:", error);
+      res.status(500).json({ error: "Failed to get Google Fit status" });
+    }
+  });
+
+  app.get("/api/auth/google-fit/callback", async (req, res) => {
+    try {
+      const { code, state: userId } = req.query;
+      
+      if (!code || !userId) {
+        return res.status(400).json({ error: "Missing authorization code or user ID" });
+      }
+      
+      await exchangeGoogleFitCode(code as string, userId as string);
+      
+      // Redirect back to Coach page with success
+      res.redirect('/coach?connected=google-fit');
+    } catch (error) {
+      console.error("Error exchanging Google Fit code:", error);
+      res.redirect('/coach?error=google-fit-failed');
+    }
+  });
+
+  app.post("/api/google-fit/sync", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await importGoogleFitData(userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error syncing Google Fit data:", error);
+      res.status(500).json({ error: "Failed to sync Google Fit data" });
+    }
+  });
+
+  app.delete("/api/google-fit/disconnect", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await disconnectGoogleFit(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error disconnecting Google Fit:", error);
+      res.status(500).json({ error: "Failed to disconnect Google Fit" });
     }
   });
 

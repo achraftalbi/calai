@@ -28,6 +28,7 @@ import {
   Clock,
   Zap
 } from "lucide-react";
+import { GoogleFitIntegration } from "@/components/GoogleFitIntegration";
 
 export default function CoachNew() {
   const { user } = useAuth();
@@ -463,30 +464,10 @@ export default function CoachNew() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!data?.intakeKcal && !data?.activeKcal && !data?.steps && (
-        <div className="px-4 mb-6">
-          <Card>
-            <CardContent className="text-center py-8">
-              <Heart className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <h3 className="font-medium text-slate-800 mb-2">Start Your Energy Journey</h3>
-              <p className="text-sm text-slate-600 mb-4">
-                Connect Google Fit or Strava, or add activities manually to see your energy balance.
-              </p>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full" disabled>
-                  Connect Google Fit
-                  <Badge className="ml-2 text-xs">Coming Soon</Badge>
-                </Button>
-                <Button variant="outline" className="w-full" disabled>
-                  Connect Strava
-                  <Badge className="ml-2 text-xs">Coming Soon</Badge>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Google Fit Integration */}
+      <div className="px-4 mb-6">
+        <GoogleFitIntegration />
+      </div>
     </div>
   );
 }
