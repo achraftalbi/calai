@@ -49,6 +49,13 @@ Preferred communication style: Simple, everyday language.
 - **Touch-Optimized UI**: Mobile-first responsive design with touch-friendly interactions
 - **Bottom Navigation**: Native mobile app navigation pattern for improved usability
 - **Image Upload**: Multiple upload methods (camera capture, file selection) with Uppy integration
+- **Automatic Activity Tracking**: Google Fit integration for background fitness monitoring with phone notifications
+
+## Enhanced Calorie Calculation System
+- **MET-Based Calculations**: Scientific Metabolic Equivalent of Task values for 30+ activities
+- **Personalized Formula**: `(MET × weight × 3.5) / 200` for accurate calorie estimation
+- **Activity Recognition**: Automatic classification of walking, running, cycling, swimming, strength training
+- **Real-time Synchronization**: Background sync with Google Fit every hour plus manual refresh
 
 ## Performance and User Experience
 - **Real-time Processing**: Streaming image analysis with progress indicators
@@ -61,6 +68,11 @@ Preferred communication style: Simple, everyday language.
 ## AI and Machine Learning Services
 - **OpenAI GPT-4 Vision**: Primary computer vision service for food recognition and nutritional analysis
 - **Edamam Nutrition API**: Professional nutrition database for accurate macro and micronutrient data
+- **Google Fit API**: Automatic activity tracking, step counting, and fitness data synchronization
+
+## Authentication and Fitness Integration
+- **Google OAuth 2.0**: Secure authentication for Google Fit integration with fitness data access
+- **Google Fit Activity Recognition**: Automatic detection of walking, running, cycling, swimming activities
 
 ## Cloud Infrastructure
 - **Google Cloud Storage**: Object storage for user-uploaded food images with custom ACL policies
