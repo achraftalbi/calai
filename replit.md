@@ -10,22 +10,23 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## August 21, 2025 - Zero-Setup Device Motion Tracking Added
-- **Device Motion Service**: Built-in step counting and activity detection using phone's native sensors
-- **No External Apps Required**: Works without Google Fit, Apple Health, or any third-party app setup
-- **Real-time Activity Detection**: Automatic walking and running detection with instant notifications
-- **Smart Activity Logging**: Activities of 2+ minutes automatically logged with calorie calculations
-- **Enhanced Calorie Calculations**: 30+ activities with scientific MET values for personalized calorie estimation
+## August 21, 2025 - Hybrid Activity Tracking System Implemented
+- **Zero-Setup Device Motion**: Built-in step counting and activity detection using phone's native sensors
+- **Strava Integration**: Complete sports coverage including swimming, cycling, and watch-based workouts  
+- **Hybrid Architecture**: Device motion for immediate walking/running + Strava for comprehensive sports tracking
+- **Smart Activity Classification**: Real-time detection with 2+ minute minimum logging threshold
+- **Data Provenance**: Clear labeling of estimated vs measured activity data with source attribution
 - **Background Processing**: Continuous motion monitoring while app is open with activity state management
 
-**Key Features:**
-- Single permission request for device motion access
-- Real-time step counting and activity classification
-- Automatic activity notifications when walking/running detected
-- Zero configuration - works immediately after permission granted
-- Fallback Google Fit integration for users who prefer external app sync
+**Implemented Features:**
+- **Device Motion Tracker**: Single permission, instant detection, real-time notifications
+- **Strava Connect**: OAuth integration, 30-day activity import, automatic 15-minute sync
+- **De-duplication Logic**: Prefers measured Strava data over estimated device motion data
+- **Activity Coverage**: Walking, running (device) + swimming, cycling, strength training (Strava)
+- **Calorie Calculations**: MET-based formulas with confidence scoring (estimated/measured)
 
-**Status**: Zero-setup device motion tracking fully implemented and ready for testing
+**API Credentials**: STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET configured for comprehensive activity import
+**Status**: Hybrid tracking system fully implemented - zero-setup for immediate use, optional Strava for complete coverage
 
 # System Architecture
 
@@ -71,14 +72,15 @@ Preferred communication style: Simple, everyday language.
 - **Zero-Setup Activity Tracking**: Built-in device motion detection requiring no external app configuration
 - **Google Fit Integration**: Optional external sync for users who prefer comprehensive health app connectivity
 
-## Enhanced Activity Detection and Calorie System
-- **Device Motion Tracking**: Native phone sensor integration for real-time step counting and activity detection
+## Hybrid Activity Detection and Calorie System
+- **Dual Tracking Architecture**: 
+  - **Tier 1 - Device Motion**: Zero-setup walking/running detection while app is open (estimated data)
+  - **Tier 2 - Strava Integration**: Complete sports coverage including watch data (measured data)
+- **Smart De-duplication**: Prefers measured Strava calories over estimated device motion calculations
 - **MET-Based Calculations**: Scientific Metabolic Equivalent of Task values for 30+ activities
 - **Personalized Formula**: `(MET × weight × 3.5) / 200` for accurate calorie estimation
-- **Dual Detection Modes**: 
-  - Primary: Zero-setup device motion sensors (no external apps required)
-  - Secondary: Google Fit integration for comprehensive health data sync
-- **Smart Activity Classification**: Automatic walking/running detection with 2+ minute minimum logging
+- **Data Confidence Scoring**: Clear distinction between estimated (device/manual) vs measured (Strava) data
+- **Comprehensive Coverage**: Walking/running (immediate) + swimming/cycling/strength (comprehensive)
 - **Real-time Notifications**: Instant activity detection alerts with background processing
 
 ## Performance and User Experience
@@ -92,7 +94,8 @@ Preferred communication style: Simple, everyday language.
 ## AI and Machine Learning Services
 - **OpenAI GPT-4 Vision**: Primary computer vision service for food recognition and nutritional analysis
 - **Edamam Nutrition API**: Professional nutrition database for accurate macro and micronutrient data
-- **Google Fit API**: Automatic activity tracking, step counting, and fitness data synchronization
+- **Google Fit API**: Legacy activity tracking integration (fallback option)
+- **Strava API**: Comprehensive sports activity import including swimming, cycling, and watch-based workouts
 
 ## Authentication and Fitness Integration
 - **Google OAuth 2.0**: Secure authentication for Google Fit integration with fitness data access
