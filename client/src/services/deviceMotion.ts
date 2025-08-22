@@ -29,13 +29,13 @@ class DeviceMotionService {
   private recentPeaks: number[] = [];
   private lastStepCandidateTime = 0;
 
-  // Calibration constants - more conservative to reduce false positives
-  private readonly STEP_THRESHOLD = 2.5;  // Higher threshold for step detection
+  // Calibration constants - balanced for accuracy without false positives
+  private readonly STEP_THRESHOLD = 1.5;  // Moderate threshold for step detection
   private readonly STEP_TIMEOUT = 2000;   // Max time between steps (ms)
-  private readonly MIN_STEP_INTERVAL = 300; // Minimum 300ms between steps (realistic walking pace)
-  private readonly MAX_STEP_INTERVAL = 1500; // Maximum 1.5s between steps
-  private readonly WALKING_CADENCE = 80;  // Minimum steps per minute for walking
-  private readonly RUNNING_CADENCE = 140; // Minimum steps per minute for running
+  private readonly MIN_STEP_INTERVAL = 250; // Minimum 250ms between steps (faster walking pace)
+  private readonly MAX_STEP_INTERVAL = 2000; // Maximum 2s between steps (slower walking)
+  private readonly WALKING_CADENCE = 60;  // Minimum steps per minute for walking (slower pace)
+  private readonly RUNNING_CADENCE = 120; // Minimum steps per minute for running
   private readonly ACTIVITY_MIN_DURATION = 2 * 60 * 1000; // 2 minutes minimum activity
   private readonly BASELINE_GRAVITY = 9.8; // Earth's gravity for baseline comparison
 
@@ -110,20 +110,20 @@ class DeviceMotionService {
     const acceleration = Math.sqrt(x * x + y * y + z * z);
     const timestamp = Date.now();
 
-    // Initialize baseline if needed (first 50 readings)
-    if (this.motionHistory.length < 50) {
+    // Initialize baseline if needed (first 20 readings for faster startup)
+    if (this.motionHistory.length < 20) {
       this.baselineAcceleration = (this.baselineAcceleration * this.motionHistory.length + acceleration) / (this.motionHistory.length + 1);
     }
 
     // Store motion data
     this.motionHistory.push({ acceleration, timestamp });
 
-    // Keep only last 10 seconds of data for better pattern analysis
-    const tenSecondsAgo = timestamp - 10000;
-    this.motionHistory = this.motionHistory.filter(m => m.timestamp > tenSecondsAgo);
+    // Keep only last 8 seconds of data
+    const eightSecondsAgo = timestamp - 8000;
+    this.motionHistory = this.motionHistory.filter(m => m.timestamp > eightSecondsAgo);
 
-    // Only start detecting steps after we have a baseline
-    if (this.motionHistory.length >= 50) {
+    // Start detecting steps after shorter baseline period
+    if (this.motionHistory.length >= 20) {
       this.detectStep(acceleration, timestamp);
     }
   }
@@ -160,9 +160,15 @@ class DeviceMotionService {
   }
 
   private validateStepPattern(currentTime: number): boolean {
-    if (this.recentPeaks.length < 3) return false; // Need at least 3 peaks to validate pattern
+    // For first few steps, be more lenient to get started
+    if (this.recentPeaks.length <= 2) {
+      // Just check if this peak has reasonable timing from the last one
+      if (this.recentPeaks.length === 1) return true; // Allow first step
+      const lastInterval = currentTime - this.recentPeaks[this.recentPeaks.length - 1];
+      return lastInterval >= this.MIN_STEP_INTERVAL && lastInterval <= this.MAX_STEP_INTERVAL;
+    }
     
-    // Calculate intervals between recent peaks
+    // For 3+ peaks, validate pattern
     const intervals: number[] = [];
     for (let i = 1; i < this.recentPeaks.length; i++) {
       intervals.push(this.recentPeaks[i] - this.recentPeaks[i-1]);
@@ -172,14 +178,14 @@ class DeviceMotionService {
     const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     const validInterval = avgInterval >= this.MIN_STEP_INTERVAL && avgInterval <= this.MAX_STEP_INTERVAL;
     
-    // Check for rhythm consistency (intervals shouldn't vary too wildly)
+    // Check for rhythm consistency (allow more variation for natural walking)
     const maxVariation = Math.max(...intervals) - Math.min(...intervals);
-    const consistentRhythm = maxVariation < 400; // Allow 400ms variation in step timing
+    const consistentRhythm = maxVariation < 800; // Allow 800ms variation for natural stride variation
     
-    // Additional check: make sure we have enough recent motion (not just sitting and tapping phone)
-    const recentMotion = this.motionHistory.slice(-20); // Last 2 seconds
+    // Lighter motion check - just ensure some recent activity
+    const recentMotion = this.motionHistory.slice(-15); // Last 1.5 seconds
     const motionVariability = this.calculateMotionVariability(recentMotion);
-    const hasMotion = motionVariability > 0.5; // Some threshold for actual movement
+    const hasMotion = motionVariability > 0.3; // Lower threshold for movement
     
     return validInterval && consistentRhythm && hasMotion;
   }
@@ -195,28 +201,36 @@ class DeviceMotionService {
   }
 
   private detectActivityType(): void {
-    if (this.recentPeaks.length < 3) return;
+    if (this.recentPeaks.length < 2) return; // Start detecting with just 2 steps
 
-    // Calculate steps per minute from actual detected steps (not raw motion data)
+    // Calculate steps per minute from actual detected steps
     const oneMinuteAgo = Date.now() - 60000;
     const recentStepTimes = this.recentPeaks.filter(time => time > oneMinuteAgo);
     const stepsPerMinute = recentStepTimes.length;
 
+    // Also check recent activity in last 30 seconds for more responsive detection
+    const thirtySecondsAgo = Date.now() - 30000;
+    const last30SecSteps = this.recentPeaks.filter(time => time > thirtySecondsAgo);
+    const projected30SecRate = (last30SecSteps.length / 30) * 60; // Project to steps per minute
+
+    // Use the higher of the two rates for more responsive detection
+    const effectiveRate = Math.max(stepsPerMinute, projected30SecRate);
+
     let newActivity: 'idle' | 'walking' | 'running' = 'idle';
 
-    // More conservative thresholds based on actual step detection
-    if (stepsPerMinute >= this.RUNNING_CADENCE) {
+    // Responsive thresholds based on recent activity
+    if (effectiveRate >= this.RUNNING_CADENCE) {
       newActivity = 'running';
-    } else if (stepsPerMinute >= this.WALKING_CADENCE) {
+    } else if (effectiveRate >= this.WALKING_CADENCE) {
       newActivity = 'walking';
     }
 
-    // Additional validation: make sure we have sustained activity
-    const lastTenSeconds = Date.now() - 10000;
-    const recentSteps = this.recentPeaks.filter(time => time > lastTenSeconds);
+    // Check for recent activity to avoid going idle too quickly
+    const lastFifteenSeconds = Date.now() - 15000;
+    const veryRecentSteps = this.recentPeaks.filter(time => time > lastFifteenSeconds);
     
-    // If no steps in last 10 seconds, mark as idle
-    if (recentSteps.length === 0) {
+    // If no steps in last 15 seconds, mark as idle
+    if (veryRecentSteps.length === 0) {
       newActivity = 'idle';
     }
 
