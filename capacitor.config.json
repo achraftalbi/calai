@@ -1,0 +1,22 @@
+{
+  "appId": "com.calai.app",
+  "appName": "CalAI",
+  "webDir": "dist",
+  "server": {
+    "url": "https://rest-express--talbiachraf.repl.co",
+    "cleartext": false,
+    "allowNavigation": [
+      "*.repl.co",
+      "*.replit.dev"
+    ]
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  }
+}
