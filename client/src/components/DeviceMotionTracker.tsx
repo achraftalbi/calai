@@ -242,8 +242,8 @@ export function DeviceMotionTracker() {
 
             <div className="text-xs text-slate-500 text-center space-y-1">
               <div>Activities of 2+ minutes will be automatically logged to your Coach dashboard</div>
-              <div className="text-amber-600">⚠️ Tracking pauses when app goes to background or screen locks</div>
-              <div className="text-blue-600">💡 Takes 1-2 seconds to calibrate when you start walking</div>
+              <div className="text-blue-600">💡 Zero setup required - works instantly</div>
+              <div className="text-amber-600">Note: Web version pauses when screen locks. Native app tracks continuously.</div>
             </div>
           </>
         )}

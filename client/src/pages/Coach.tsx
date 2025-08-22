@@ -467,12 +467,7 @@ export default function CoachNew() {
         </div>
       )}
 
-      {/* Google Fit Integration */}
-      <div className="px-4 mb-6">
-        <GoogleFitIntegration />
-      </div>
-
-      {/* Device Motion Tracker - Zero Setup Alternative */}
+      {/* Device Motion Tracker - Zero Setup Activity Detection */}
       <div className="px-4 mb-6">
         <DeviceMotionTracker />
       </div>
@@ -481,6 +476,13 @@ export default function CoachNew() {
       <div className="px-4 mb-6">
         <StravaIntegration />
       </div>
+
+      {/* Google Fit Integration - Hidden for simpler UX, keeping code for advanced users */}
+      {false && (
+        <div className="px-4 mb-6">
+          <GoogleFitIntegration />
+        </div>
+      )}
 
       {/* Google Fit Troubleshooting */}
       <div className="px-4 mb-6">

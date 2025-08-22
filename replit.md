@@ -10,23 +10,26 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## August 21, 2025 - Hybrid Activity Tracking System Implemented
-- **Zero-Setup Device Motion**: Built-in step counting and activity detection using phone's native sensors
-- **Strava Integration**: Complete sports coverage including swimming, cycling, and watch-based workouts  
-- **Hybrid Architecture**: Device motion for immediate walking/running + Strava for comprehensive sports tracking
-- **Smart Activity Classification**: Real-time detection with 2+ minute minimum logging threshold
-- **Data Provenance**: Clear labeling of estimated vs measured activity data with source attribution
-- **Background Processing**: Continuous motion monitoring while app is open with activity state management
+## August 22, 2025 - Native Android Build & Simplified Activity Tracking
+- **Capacitor Native Setup**: Complete Android platform configuration for real device testing
+- **Hybrid Motion Architecture**: Native Android sensors + web fallback with unified API
+- **Simplified UX**: Device Motion + Strava only (Google Fit hidden for reduced friction)
+- **Android Permissions**: Activity recognition, notifications, foreground service configured
+- **Zero-Setup Focus**: Immediate device motion detection + optional Strava for sports
 
-**Implemented Features:**
-- **Device Motion Tracker**: Single permission, instant detection, real-time notifications
-- **Strava Connect**: OAuth integration, 30-day activity import, automatic 15-minute sync
-- **De-duplication Logic**: Prefers measured Strava data over estimated device motion data
-- **Activity Coverage**: Walking, running (device) + swimming, cycling, strength training (Strava)
-- **Calorie Calculations**: MET-based formulas with confidence scoring (estimated/measured)
+**Native Android Implementation:**
+- **Real Sensor Access**: Hardware step counter and activity recognition APIs
+- **Background Tracking**: Continuous step counting when screen locked (native only)
+- **Development Workflow**: Live Replit backend + native shell for realistic testing
+- **Build System**: Capacitor with Android Studio integration ready
 
-**API Credentials**: STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET configured for comprehensive activity import
-**Status**: Hybrid tracking system fully implemented - zero-setup for immediate use, optional Strava for complete coverage
+**Simplified Integration Strategy:**
+- **Primary**: Device Motion (zero setup, immediate walking/running detection)
+- **Secondary**: Strava (one-click OAuth, comprehensive sports from watches)
+- **Hidden**: Google Fit (preserved code, disabled UI for simpler onboarding)
+
+**Testing Priority**: Focus on Device Motion accuracy with real Android sensors + Strava data merging
+**Status**: Ready for native Android testing on Galaxy A53 to validate motion detection accuracy
 
 # System Architecture
 
