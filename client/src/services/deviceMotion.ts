@@ -96,8 +96,9 @@ class DeviceMotionService {
     this.currentActivity = 'idle';
     this.activityStartTime = null;
     this.baselineAcceleration = 0;
+    this.lastStepCandidateTime = 0;
     
-    console.log('Device motion tracking stopped and reset');
+    console.log('DeviceMotion: Tracking stopped and reset');
   }
 
   private handleMotion(event: DeviceMotionEvent): void {
@@ -129,12 +130,16 @@ class DeviceMotionService {
   }
 
   private detectStep(acceleration: number, timestamp: number): void {
-    // More sophisticated step detection with noise filtering
+    // Check for step threshold and timing
     const deviationFromBaseline = Math.abs(acceleration - this.baselineAcceleration);
+    
+    console.log(`DeviceMotion: Accel: ${acceleration.toFixed(2)}, Baseline: ${this.baselineAcceleration.toFixed(2)}, Deviation: ${deviationFromBaseline.toFixed(2)}`);
     
     // Check if this could be a step (significant deviation from baseline)
     if (deviationFromBaseline > this.STEP_THRESHOLD && 
         timestamp - this.lastStepCandidateTime > this.MIN_STEP_INTERVAL) {
+      
+      console.log(`DeviceMotion: Potential step detected - deviation: ${deviationFromBaseline.toFixed(2)} > ${this.STEP_THRESHOLD}`);
       
       // Store this as a potential step
       this.lastStepCandidateTime = timestamp;
@@ -144,74 +149,68 @@ class DeviceMotionService {
         // This is a valid step
         this.recentPeaks.push(timestamp);
         
-        // Keep only last 10 peaks (more history for better pattern detection)
-        if (this.recentPeaks.length > 10) {
+        // Keep only last 8 peaks
+        if (this.recentPeaks.length > 8) {
           this.recentPeaks.shift();
         }
         
         this.stepCount++;
         this.lastStepTime = timestamp;
 
+        console.log(`DeviceMotion: Step ${this.stepCount} confirmed!`);
+
         // Detect activity type based on step cadence
         this.detectActivityType();
 
         // Notify listeners
         this.notifyListeners();
+      } else {
+        console.log('DeviceMotion: Step validation failed');
       }
     }
   }
 
   private validateStepPattern(currentTime: number): boolean {
-    // Always allow the first step to start tracking
-    if (this.recentPeaks.length === 0) {
-      return true;
+    // Always allow the first few steps to get tracking started
+    if (this.recentPeaks.length <= 5) {
+      // For first 5 steps, just validate basic timing
+      if (this.recentPeaks.length === 0) {
+        console.log('DeviceMotion: Allowing first step');
+        return true;
+      }
+      
+      const lastInterval = currentTime - this.recentPeaks[this.recentPeaks.length - 1];
+      const isValidTiming = lastInterval >= this.MIN_STEP_INTERVAL && lastInterval <= this.MAX_STEP_INTERVAL;
+      
+      console.log(`DeviceMotion: Step ${this.recentPeaks.length + 1}, interval: ${lastInterval}ms, valid: ${isValidTiming}`);
+      return isValidTiming;
     }
     
-    // For second step, just check reasonable timing
-    if (this.recentPeaks.length === 1) {
-      const interval = currentTime - this.recentPeaks[0];
-      return interval >= this.MIN_STEP_INTERVAL && interval <= this.MAX_STEP_INTERVAL;
-    }
-    
-    // For subsequent steps, use more validation but be forgiving
+    // For later steps, use simple validation
     const lastInterval = currentTime - this.recentPeaks[this.recentPeaks.length - 1];
     
-    // Check this step has reasonable timing
+    // Basic timing check
     if (lastInterval < this.MIN_STEP_INTERVAL || lastInterval > this.MAX_STEP_INTERVAL) {
+      console.log(`DeviceMotion: Step rejected - bad timing: ${lastInterval}ms`);
       return false;
     }
     
-    // For 3+ steps, check pattern consistency but be lenient
-    if (this.recentPeaks.length >= 3) {
-      // Look at last few intervals
-      const recentIntervals = [];
-      const peaksToCheck = Math.min(4, this.recentPeaks.length);
+    // Simple motion check - just ensure some recent activity
+    const recentMotion = this.motionHistory.slice(-8); // Last 0.8 seconds
+    if (recentMotion.length >= 4) {
+      const accelerations = recentMotion.map(m => m.acceleration);
+      const max = Math.max(...accelerations);
+      const min = Math.min(...accelerations);
+      const range = max - min;
       
-      for (let i = this.recentPeaks.length - peaksToCheck + 1; i < this.recentPeaks.length; i++) {
-        recentIntervals.push(this.recentPeaks[i] - this.recentPeaks[i-1]);
-      }
-      recentIntervals.push(lastInterval);
-      
-      // Check if intervals show some consistency (not completely random)
-      const avgInterval = recentIntervals.reduce((a, b) => a + b, 0) / recentIntervals.length;
-      const maxDeviation = Math.max(...recentIntervals.map(interval => Math.abs(interval - avgInterval)));
-      
-      // Allow significant variation but reject completely erratic patterns
-      if (maxDeviation > 1000) { // 1 second deviation allowed
+      if (range < 0.5) { // Very minimal movement required
+        console.log(`DeviceMotion: Step rejected - insufficient motion: ${range}`);
         return false;
       }
     }
     
-    // Light motion check - ensure there's actual movement happening
-    const recentMotion = this.motionHistory.slice(-10); // Last 1 second
-    if (recentMotion.length >= 5) {
-      const motionVariability = this.calculateMotionVariability(recentMotion);
-      if (motionVariability < 0.2) { // Very low threshold
-        return false;
-      }
-    }
-    
-    return true; // Default to allowing the step
+    console.log(`DeviceMotion: Step ${this.recentPeaks.length + 1} accepted, interval: ${lastInterval}ms`);
+    return true;
   }
 
   private calculateMotionVariability(motionData: MotionSensor[]): number {
