@@ -110,8 +110,8 @@ class DeviceMotionService {
     const acceleration = Math.sqrt(x * x + y * y + z * z);
     const timestamp = Date.now();
 
-    // Initialize baseline if needed (first 20 readings for faster startup)
-    if (this.motionHistory.length < 20) {
+    // Initialize baseline if needed (first 15 readings for faster startup)
+    if (this.motionHistory.length < 15) {
       this.baselineAcceleration = (this.baselineAcceleration * this.motionHistory.length + acceleration) / (this.motionHistory.length + 1);
     }
 
@@ -123,7 +123,7 @@ class DeviceMotionService {
     this.motionHistory = this.motionHistory.filter(m => m.timestamp > eightSecondsAgo);
 
     // Start detecting steps after shorter baseline period
-    if (this.motionHistory.length >= 20) {
+    if (this.motionHistory.length >= 15) { // Even faster startup
       this.detectStep(acceleration, timestamp);
     }
   }
@@ -136,19 +136,21 @@ class DeviceMotionService {
     if (deviationFromBaseline > this.STEP_THRESHOLD && 
         timestamp - this.lastStepCandidateTime > this.MIN_STEP_INTERVAL) {
       
-      // Look for step pattern: need consistent rhythm
-      this.recentPeaks.push(timestamp);
+      // Store this as a potential step
+      this.lastStepCandidateTime = timestamp;
       
-      // Keep only last 6 peaks (about 3-6 seconds of walking)
-      if (this.recentPeaks.length > 6) {
-        this.recentPeaks.shift();
-      }
-      
-      // Validate this is a real step by checking rhythm consistency
+      // Validate this is a real step by checking pattern
       if (this.validateStepPattern(timestamp)) {
+        // This is a valid step
+        this.recentPeaks.push(timestamp);
+        
+        // Keep only last 10 peaks (more history for better pattern detection)
+        if (this.recentPeaks.length > 10) {
+          this.recentPeaks.shift();
+        }
+        
         this.stepCount++;
         this.lastStepTime = timestamp;
-        this.lastStepCandidateTime = timestamp;
 
         // Detect activity type based on step cadence
         this.detectActivityType();
@@ -160,34 +162,56 @@ class DeviceMotionService {
   }
 
   private validateStepPattern(currentTime: number): boolean {
-    // For first few steps, be more lenient to get started
-    if (this.recentPeaks.length <= 2) {
-      // Just check if this peak has reasonable timing from the last one
-      if (this.recentPeaks.length === 1) return true; // Allow first step
-      const lastInterval = currentTime - this.recentPeaks[this.recentPeaks.length - 1];
-      return lastInterval >= this.MIN_STEP_INTERVAL && lastInterval <= this.MAX_STEP_INTERVAL;
+    // Always allow the first step to start tracking
+    if (this.recentPeaks.length === 0) {
+      return true;
     }
     
-    // For 3+ peaks, validate pattern
-    const intervals: number[] = [];
-    for (let i = 1; i < this.recentPeaks.length; i++) {
-      intervals.push(this.recentPeaks[i] - this.recentPeaks[i-1]);
+    // For second step, just check reasonable timing
+    if (this.recentPeaks.length === 1) {
+      const interval = currentTime - this.recentPeaks[0];
+      return interval >= this.MIN_STEP_INTERVAL && interval <= this.MAX_STEP_INTERVAL;
     }
     
-    // Check if intervals are within reasonable walking/running range
-    const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    const validInterval = avgInterval >= this.MIN_STEP_INTERVAL && avgInterval <= this.MAX_STEP_INTERVAL;
+    // For subsequent steps, use more validation but be forgiving
+    const lastInterval = currentTime - this.recentPeaks[this.recentPeaks.length - 1];
     
-    // Check for rhythm consistency (allow more variation for natural walking)
-    const maxVariation = Math.max(...intervals) - Math.min(...intervals);
-    const consistentRhythm = maxVariation < 800; // Allow 800ms variation for natural stride variation
+    // Check this step has reasonable timing
+    if (lastInterval < this.MIN_STEP_INTERVAL || lastInterval > this.MAX_STEP_INTERVAL) {
+      return false;
+    }
     
-    // Lighter motion check - just ensure some recent activity
-    const recentMotion = this.motionHistory.slice(-15); // Last 1.5 seconds
-    const motionVariability = this.calculateMotionVariability(recentMotion);
-    const hasMotion = motionVariability > 0.3; // Lower threshold for movement
+    // For 3+ steps, check pattern consistency but be lenient
+    if (this.recentPeaks.length >= 3) {
+      // Look at last few intervals
+      const recentIntervals = [];
+      const peaksToCheck = Math.min(4, this.recentPeaks.length);
+      
+      for (let i = this.recentPeaks.length - peaksToCheck + 1; i < this.recentPeaks.length; i++) {
+        recentIntervals.push(this.recentPeaks[i] - this.recentPeaks[i-1]);
+      }
+      recentIntervals.push(lastInterval);
+      
+      // Check if intervals show some consistency (not completely random)
+      const avgInterval = recentIntervals.reduce((a, b) => a + b, 0) / recentIntervals.length;
+      const maxDeviation = Math.max(...recentIntervals.map(interval => Math.abs(interval - avgInterval)));
+      
+      // Allow significant variation but reject completely erratic patterns
+      if (maxDeviation > 1000) { // 1 second deviation allowed
+        return false;
+      }
+    }
     
-    return validInterval && consistentRhythm && hasMotion;
+    // Light motion check - ensure there's actual movement happening
+    const recentMotion = this.motionHistory.slice(-10); // Last 1 second
+    if (recentMotion.length >= 5) {
+      const motionVariability = this.calculateMotionVariability(recentMotion);
+      if (motionVariability < 0.2) { // Very low threshold
+        return false;
+      }
+    }
+    
+    return true; // Default to allowing the step
   }
 
   private calculateMotionVariability(motionData: MotionSensor[]): number {
