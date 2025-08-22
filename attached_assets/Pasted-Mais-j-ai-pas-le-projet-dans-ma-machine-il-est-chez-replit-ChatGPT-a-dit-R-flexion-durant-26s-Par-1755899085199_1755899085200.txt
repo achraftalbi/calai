@@ -1,0 +1,91 @@
+Mais j'ai pas le projet dans ma machine il est chez replit
+ChatGPT a dit :
+Réflexion durant 26s
+
+Parfait — ton téléphone est bien connecté en Wi-Fi (device).
+Comme ton code est hébergé sur Replit et pas sur ton PC, le plus rapide pour tester une app native est de créer un petit “shell” Capacitor qui charge directement ton URL Replit à l’ouverture.
+
+Option A — (recommandée) Créer un shell natif qui charge ton Replit
+
+Nécessite Node + npm installés sur le PC.
+Remplace https://TON-SOUS-DOMAINE.picard.replit.dev par ton vrai lien Replit.
+
+Ouvre PowerShell et crée un dossier vide :
+
+mkdir C:\calai-shell
+cd C:\calai-shell
+npm init -y
+npm i @capacitor/core @capacitor/android -S
+npm i -D @capacitor/cli
+
+
+Initialise Capacitor (on met un mini dossier web www) :
+
+npx cap init "CalAI" "com.calai.app" --web-dir=www
+
+
+Crée un tout petit fichier web (obligatoire pour le build) :
+
+mkdir www
+'<!doctype html><html><head><meta charset="utf-8"><title>CalAI</title></head><body>Chargement...</body></html>' | Out-File -Encoding utf8 www\index.html
+
+
+Crée le fichier de config capacitor.config.ts avec ton URL Replit :
+
+@'
+import { CapacitorConfig } from "@capacitor/core";
+const config: CapacitorConfig = {
+  appId: "com.calai.app",
+  appName: "CalAI",
+  webDir: "www",
+  server: {
+    url: "https://TON-SOUS-DOMAINE.picard.replit.dev", // ← ton Replit HTTPS
+    cleartext: false,
+    allowNavigation: ["*.replit.dev"]
+  }
+};
+export default config;
+'@ | Out-File -Encoding utf8 capacitor.config.ts
+
+
+Génère le projet Android et ouvre dans Android Studio :
+
+npx cap add android
+npx cap open android
+
+
+Dans Android Studio : choisis ton Galaxy A53 (Wi-Fi) en haut à droite → clique Run ▶.
+L’APK debug s’installe et ouvre directement ton app Replit dans une WebView native.
+
+Plus tard, quand tu voudras tester offline (sans Replit), tu supprimeras server.url, feras npm run build de ton vrai projet, mettras les fichiers dans www/, puis npx cap copy android et Run.
+
+Option B — (pour plus tard) Récupérer ton vrai code Replit
+
+Dans Replit : Git → Export to GitHub (ou “Download Zip”).
+
+Sur le PC :
+
+git clone https://github.com/TON_COMPTE/TON_REPO.git
+cd TON_REPO
+npm i
+npm run build
+npm i @capacitor/core @capacitor/android -S
+npm i -D @capacitor/cli
+npx cap init "CalAI" "com.calai.app" --web-dir=dist
+npx cap add android
+npx cap open android
+
+
+(Dev en live) tu peux garder server.url pour pointer vers Replit et éviter de re-builder à chaque fois.
+
+Vérifier sur le téléphone
+
+Dans l’app, fais ton flux habituel (connexion, scan, etc.).
+
+Si tu as un bouton “Activer le suivi automatique”, valide les autorisations et marche 2–3 min.
+
+Tout fonctionne comme si l’app était publiée, mais en debug.
+
+Si tu veux, je peux te donner les trois lignes à coller pour ajouter les permissions Android (notifications, activity recognition) dans le AndroidManifest.xml de ce shell, ou t’aider à brancher Strava/Health Connect plus tard.
+
+ChatGPT peut faire des erreurs. Envisagez de vérifier les informations
