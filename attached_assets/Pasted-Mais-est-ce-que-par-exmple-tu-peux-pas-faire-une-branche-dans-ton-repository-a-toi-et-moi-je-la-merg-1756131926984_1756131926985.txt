@@ -1,0 +1,272 @@
+Mais est ce que par exmple tu peux pas faire une branche dans ton repository a toi et moi je la merge  dans mon projet github ? Sinon peux tu me chercher une solution. On effet car replit facture sur tout ce que je lui demande et c'est un peu cher c'est pourquoi je veux partager un répo et je veux qu'une AI comme toi push sur ce repo et que je pull a partir de reply. Est ce possible ?
+ChatGPT a dit :
+Réflexion durant 1m 35s
+
+Merci ! Je suis partant pour te livrer tout ça, mais je ne peux pas pousser du code sur GitHub à ta place (je n’ai pas d’accès à des dépôts ni d’identité Git). La solution propre et rapide :
+
+➡️ Je te fournis un “patch pack” prêt à coller (fichiers + commandes).
+Tu crées une branche à partir de main, tu colles/executes les commandes, puis tu git push et tu merges ta PR.
+
+Ce qu’on met en place
+
+Supabase Auth (Email magic-link + Google).
+
+Deep-link mobile calai://auth (retour dans l’app native).
+
+Callback web /auth/callback (retour dans la PWA/Replit).
+
+Garde de routes + persistance de session.
+
+J’ai regardé ton dépôt achraftalbi/calai (dossiers client/, android/, server/, capacitor.config.json). 
+GitHub
+
+0) Supabase – configuration (tableau de bord)
+
+Crée un projet → récupère Project URL et Anon key.
+
+Auth → Providers
+
+Email = ON
+
+Google = ON (si demandé par Supabase, configure l’App OAuth Google).
+
+Auth → URL Configuration → Redirect URLs : ajoute
+
+https://<ton-sous-domaine>.replit.dev/auth/callback
+
+calai://auth
+
+1) Variables d’environnement
+
+Sur Replit (Secrets) et en local (client/.env si tu buildes localement) :
+
+VITE_SUPABASE_URL=<<Project URL>>
+VITE_SUPABASE_ANON_KEY=<<Anon public key>>
+
+2) Crée une branche et installe la lib
+git clone https://github.com/achraftalbi/calai.git
+cd calai
+git checkout -b feature/supabase-auth
+
+# dépendance côté client (React)
+npm --prefix client i @supabase/supabase-js
+
+3) FICHIERS À AJOUTER (copier/coller tels quels)
+
+Tous ces chemins sont par rapport à client/.
+
+client/src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnon, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false, // on gère le callback manuellement
+  },
+});
+
+client/src/auth/AuthProvider.tsx
+import { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
+type User = import('@supabase/supabase-js').User | null;
+type Session = import('@supabase/supabase-js').Session | null;
+type Ctx = { user: User; session: Session; loading: boolean; signOut: () => Promise<void> };
+
+const AuthCtx = createContext<Ctx>({ user: null, session: null, loading: true, signOut: async () => {} });
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User>(null);
+  const [session, setSession] = useState<Session>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s ?? null);
+      setUser(s?.user ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  return (
+    <AuthCtx.Provider value={{ user, session, loading, signOut: () => supabase.auth.signOut() }}>
+      {children}
+    </AuthCtx.Provider>
+  );
+}
+export const useAuth = () => useContext(AuthCtx);
+
+client/src/auth/ProtectedRoute.tsx
+import { useAuth } from './AuthProvider';
+import { Redirect } from 'wouter';
+
+export default function ProtectedRoute({ children }: { children: JSX.Element }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-6">Loading…</div>;
+  if (!user) return <Redirect to="/login" />;
+  return children;
+}
+
+client/src/pages/Login.tsx
+import { supabase } from '@/lib/supabase';
+import { Capacitor } from '@capacitor/core';
+
+const isNative = Capacitor.isNativePlatform();
+
+export default function Login() {
+  async function withEmail(e: React.FormEvent) {
+    e.preventDefault();
+    const email = new FormData(e.currentTarget as HTMLFormElement).get('email') as string;
+    await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: isNative ? 'calai://auth' : `${location.origin}/auth/callback` },
+    });
+    alert('Check your email for the magic link.');
+  }
+
+  async function withGoogle() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: isNative ? 'calai://auth' : `${location.origin}/auth/callback` },
+    });
+  }
+
+  return (
+    <div className="p-6 max-w-sm mx-auto space-y-3">
+      <h1 className="text-2xl font-semibold">Sign in to CalAI</h1>
+      <form onSubmit={withEmail} className="space-y-2">
+        <input name="email" type="email" required placeholder="you@email.com"
+               className="w-full border p-2 rounded" />
+        <button className="w-full p-2 rounded bg-black text-white">Send magic link</button>
+      </form>
+      <button onClick={withGoogle} className="w-full p-2 rounded border">Continue with Google</button>
+    </div>
+  );
+}
+
+client/src/pages/AuthCallback.tsx (route web)
+import { useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'wouter';
+
+export default function AuthCallback() {
+  const nav = useNavigate();
+  useEffect(() => {
+    const code = new URLSearchParams(location.search).get('code');
+    if (code) supabase.auth.exchangeCodeForSession({ authCode: code }).then(() => nav('/'));
+    else nav('/');
+  }, []);
+  return <div className="p-6">Signing you in…</div>;
+}
+
+Handler deep-link (mobile) – mets ce bloc une seule fois (ex. dans client/src/main.tsx)
+import { App } from '@capacitor/app';
+import { supabase } from '@/lib/supabase';
+
+App.addListener('appUrlOpen', async ({ url }) => {
+  if (url.startsWith('calai://auth')) {
+    const u = new URL(url);
+    const code = u.searchParams.get('code');
+    if (code) {
+      await supabase.auth.exchangeCodeForSession({ authCode: code });
+      location.replace('/');
+    }
+  }
+});
+
+4) Branche tes routes (Wouter)
+
+Dans ton composant racine (souvent client/src/App.tsx), ajoute ces routes :
+
+import { Route } from 'wouter';
+import { AuthProvider } from '@/auth/AuthProvider';
+import ProtectedRoute from '@/auth/ProtectedRoute';
+import Login from '@/pages/Login';
+import AuthCallback from '@/pages/AuthCallback';
+// import Home from '@/pages/Home'  // adapte à ton code
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Route path="/login" component={Login} />
+      <Route path="/auth/callback" component={AuthCallback} />
+      <ProtectedRoute>
+        <Route path="/" component={Home} />
+      </ProtectedRoute>
+    </AuthProvider>
+  );
+}
+
+
+Si ton routing est ailleurs, colle les 2 routes login et auth/callback + entoure ton arbre avec <AuthProvider> et les écrans protégés avec <ProtectedRoute>.
+
+5) Capacitor / Android (deep-link + navigate)
+5.1 Autoriser la navigation & domaines
+
+à la racine du repo, édite capacitor.config.json et assure-toi d’avoir :
+
+{
+  "appId": "com.calai.app",
+  "appName": "CalAI",
+  "webDir": "client/dist",
+  "server": {
+    "url": "https://<ton-sous-domaine>.replit.dev",
+    "cleartext": false,
+    "allowNavigation": [
+      "*.replit.dev",
+      "*.repl.co",
+      "*.supabase.co",
+      "*.supabase.in",
+      "accounts.google.com"
+    ]
+  }
+}
+
+5.2 Deep-link Android
+
+Édite android/app/src/main/AndroidManifest.xml dans l’activité com.getcapacitor.BridgeActivity et ajoute :
+
+<intent-filter android:autoVerify="true">
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
+  <data android:scheme="calai" android:host="auth" />
+</intent-filter>
+
+
+Puis :
+
+npx cap sync android
+npx cap open android
+
+
+Run ▶ sur ton Galaxy A53.
+
+Pour un APK offline (production), supprime server.url, fais npm --prefix client run build, garde webDir: "client/dist", puis npx cap copy android + Run.
+
+6) Commit & Push
+git add .
+git commit -m "feat(auth): Supabase (email + Google) with deep-link calai://auth and /auth/callback"
+git push origin feature/supabase-auth
+
+
+Crée ta Pull Request → merge vers main.
+
+Pourquoi je ne peux pas “pousser depuis mon dépôt à moi” ?
+
+Je n’ai pas d’accès Git/GitHub ni d’identité pour créer un dépôt externe. Par contre, avec ce pack de fichiers + les commandes, tu obtiens exactement le résultat (et tu gardes le contrôle total sur ton code et tes coûts Replit).
+
+Si tu veux, je peux aussi te préparer un fichier .patch (diff unifié) que tu appliqueras avec git apply. Dis-moi juste :
+
+le chemin exact de ton composant de routes (si différent de client/src/App.tsx),
+
+si tu veux Google uniquement ou Email + Google (actuellement c’est les deux).
