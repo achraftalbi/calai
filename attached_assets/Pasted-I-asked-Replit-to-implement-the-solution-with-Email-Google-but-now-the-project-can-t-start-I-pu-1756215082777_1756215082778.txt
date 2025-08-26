@@ -1,0 +1,156 @@
+I asked Replit to implement the solution with Email + Google, but now the project  can't start. I pushed the code to https://github.com/achraftalbi/calai. Can you get the code and check me what is the problem and give me a solution ?
+ChatGPT a dit :
+Réflexion durant 2m 4s
+
+Got it—let’s get your app starting again. When teams add Supabase (Email + Google), projects usually stop booting on Replit for one of these reasons:
+
+Replit is running the wrong folder (root instead of client/).
+
+Vite isn’t exposed to the public network on Replit (needs --host 0.0.0.0 and port 3000).
+
+Supabase env vars missing (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
+
+Path alias @ not configured in Vite/TS → build fails, white screen.
+
+(Android only) WebView blocked domains for Google OAuth.
+
+Below is a clean, minimal fix you can apply right now.
+
+✅ Quick Fix (copy/paste)
+A) Replit Secrets (MUST)
+
+In your Replit workspace: Tools → Secrets
+Add both (values from Supabase project):
+
+VITE_SUPABASE_URL=... 
+VITE_SUPABASE_ANON_KEY=...
+
+
+Open the Replit Shell and verify:
+
+echo $VITE_SUPABASE_URL
+echo $VITE_SUPABASE_ANON_KEY
+
+B) Make Replit run the frontend correctly
+
+At repo root you already have a .replit. Replace its run line with:
+
+run = "npm --prefix client install && npm --prefix client run dev -- --host 0.0.0.0 --port 3000"
+
+
+This forces Replit to:
+
+install inside client/
+
+run Vite bound to 0.0.0.0:3000 (Replit requirement)
+
+(Your repo has a mono-structure with client/ and server/, plus Capacitor/Android files. This ensures Replit serves the client app.) 
+GitHub
+
+C) Vite config: host + alias
+
+Edit client/vite.config.ts to this (or ensure equivalent):
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: true,   // exposes to Replit
+    port: 3000
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src')  // makes import '@/...' work
+    }
+  }
+})
+
+
+If you see imports like @/lib/supabase, this alias is required or the app won’t start.
+
+D) Supabase client (if missing)
+
+Create client/src/lib/supabase.ts:
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnon, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false, // we handle callback manually
+  },
+});
+
+
+If your code already has this file, just confirm the env names begin with VITE_ (Vite requires that prefix to expose them to the client).
+
+E) OAuth screen loads in Android WebView
+
+Make sure capacitor.config.json allows Google domains (and your Replit domain):
+
+{
+  "appId": "com.calai.app",
+  "appName": "CalAI",
+  "webDir": "client/dist",
+  "server": {
+    "url": "https://<your>.replit.dev",
+    "cleartext": false,
+    "allowNavigation": [
+      "*.replit.dev",
+      "*.repl.co",
+      "*.supabase.co",
+      "*.supabase.in",
+      "accounts.google.com",
+      "apis.google.com"
+    ]
+  }
+}
+
+
+Then:
+
+npx cap sync android
+npx cap open android
+# Run ▶ to your A53
+
+🔎 If it still won’t start on Replit
+
+Open the Replit Console and check the very first red error. The fix is usually one of:
+
+“VITE_SUPABASE_URL is undefined” → Secrets not set (Section A).
+
+Module not found '@/…' → Alias not configured (Section C).
+
+Port/host binding errors → Make sure .replit uses --host 0.0.0.0 --port 3000 (Section B).
+
+CORS/Auth popup outside WebView → Update allowNavigation (Section E) and ensure your login doesn’t open a new tab (window.open or target="_blank"). Use full-page redirects instead.
+
+🧪 Minimal sanity check (local or Replit shell)
+
+From repo root:
+
+cd client
+npm i
+npm run dev -- --host 0.0.0.0 --port 3000
+
+
+You should see “VITE vX.X.X ready in …”. Visit the Replit Preview URL; the login page should render.
+
+If you want, I can write a tiny PR patch (diff) that:
+
+updates .replit,
+
+ensures client/vite.config.ts is correct,
+
+adds a client/.env.example,
+
+and (optionally) adds the Supabase auth files.
+
+Tell me if you prefer Email + Google (as discussed), and I’ll give you the exact files/commands to git add and git push on a new branch (e.g., fix/replit-startup).
