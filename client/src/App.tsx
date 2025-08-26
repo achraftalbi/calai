@@ -13,6 +13,8 @@ import Coach from "@/pages/Coach";
 import Profile from "@/pages/Profile";
 import Subscribe from "@/pages/Subscribe";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import AuthCallback from "@/pages/AuthCallback";
 import NotFound from "@/pages/not-found";
 import { Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
 import { CalAILogo } from "@/components/CalAILogo";
@@ -74,21 +76,23 @@ function BottomNavigation() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-calai-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-50 min-h-screen">
       {isAuthenticated && <AppHeader />}
       <Switch>
-        {isLoading ? (
-          <Route path="/" component={() => (
-            <div className="bg-slate-50 min-h-screen flex items-center justify-center">
-              <div className="animate-spin w-8 h-8 border-4 border-calai-primary border-t-transparent rounded-full"></div>
-            </div>
-          )} />
-        ) : !isAuthenticated ? (
-          <Route path="/" component={Landing} />
-        ) : (
+        <Route path="/login" component={Login} />
+        <Route path="/auth/callback" component={AuthCallback} />
+        {isAuthenticated ? (
           <>
             <Route path="/" component={Home} />
             <Route path="/scan" component={Scan} />
@@ -99,6 +103,8 @@ function Router() {
             <Route path="/analytics" component={Analytics} />
             <Route path="/settings" component={Settings} />
           </>
+        ) : (
+          <Route path="/" component={Login} />
         )}
         <Route component={NotFound} />
       </Switch>

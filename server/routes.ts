@@ -17,17 +17,15 @@ import { z } from "zod";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware setup - temporarily disabled
-  // await setupAuth(app);
-
-  // Temporary middleware to simulate authentication
-  app.use((req: any, res, next) => {
-    req.user = { claims: { sub: 'temp-user-id' } };
-    next();
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // Auth routes - temporarily return null user to bypass auth
+  // Auth routes for Supabase integration
   app.get('/api/auth/user', async (req: any, res) => {
+    // This endpoint will be handled by the frontend Supabase client
+    // Return null to indicate no server-side session management
     res.json(null);
   });
 

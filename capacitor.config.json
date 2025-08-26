@@ -20,6 +20,9 @@
         "sound",
         "alert"
       ]
+    },
+    "CapacitorHttp": {
+      "enabled": true
     }
   }
 }
