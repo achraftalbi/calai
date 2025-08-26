@@ -13,6 +13,7 @@ import Coach from "@/pages/Coach";
 import Profile from "@/pages/Profile";
 import Subscribe from "@/pages/Subscribe";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 import { Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
 import { CalAILogo } from "@/components/CalAILogo";
@@ -81,7 +82,10 @@ function Router() {
       {isAuthenticated && !isLoading && <AppHeader />}
       <Switch>
         {isLoading || !isAuthenticated ? (
-          <Route path="/" component={Landing} />
+          <>
+            <Route path="/login" component={Login} />
+            <Route path="/" component={Landing} />
+          </>
         ) : (
           <>
             <Route path="/" component={Home} />

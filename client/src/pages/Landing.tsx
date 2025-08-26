@@ -20,13 +20,24 @@ export default function Landing() {
           AI-powered nutrition tracking. Just snap a photo of your food and get instant calorie and macro analysis.
         </p>
         
-        <Button 
-          className="w-full bg-white text-calai-primary hover:bg-cyan-50 font-semibold py-4 text-lg"
-          onClick={() => window.location.href = "/api/login"}
-          data-testid="button-login"
-        >
-          Get Started - It's Free!
-        </Button>
+        <div className="space-y-3">
+          <Button 
+            className="w-full bg-white text-calai-primary hover:bg-cyan-50 font-semibold py-4 text-lg"
+            onClick={() => window.location.href = "/login"}
+            data-testid="button-login-supabase"
+          >
+            Email / Google - Get Started!
+          </Button>
+          
+          <Button 
+            variant="outline"
+            className="w-full bg-transparent border-white text-white hover:bg-white hover:text-calai-primary font-semibold py-3"
+            onClick={() => window.location.href = "/api/login"}
+            data-testid="button-login-replit"
+          >
+            Replit Developer Access
+          </Button>
+        </div>
         
         <p className="text-sm text-cyan-200 mt-3">
           3 free scans daily • No credit card required
@@ -113,7 +124,7 @@ export default function Landing() {
             </p>
             <Button 
               className="w-full bg-calai-secondary hover:bg-green-600 text-white font-semibold"
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => window.location.href = "/login"}
               data-testid="button-cta-login"
             >
               Start Free Account
