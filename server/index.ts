@@ -53,11 +53,34 @@ app.use((req, res, next) => {
     // doesn't interfere with the other routes
     if (app.get("env") === "development") {
       try {
-        await setupVite(app, server);
+        // Prevent Vite errors from crashing the server by wrapping in timeout
+        const vitePromise = setupVite(app, server);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Vite setup timeout")), 10000);
+        });
+        
+        await Promise.race([vitePromise, timeoutPromise]);
+        log("Vite setup completed successfully", "info");
       } catch (viteError) {
         log(`Vite setup error: ${viteError instanceof Error ? viteError.message : viteError}`, "error");
         // Continue without Vite in case of setup errors
         log("Continuing without Vite development setup", "warning");
+        
+        // Provide basic HTML response for non-API routes
+        app.use("*", (req, res) => {
+          if (req.path.startsWith('/api')) {
+            return; // Let API routes handle themselves
+          }
+          res.status(200).send(`
+            <html>
+              <body>
+                <h1>CalAI - Server Running</h1>
+                <p>Frontend temporarily unavailable due to Vite configuration issue.</p>
+                <p>API endpoints are working normally.</p>
+              </body>
+            </html>
+          `);
+        });
       }
     } else {
       serveStatic(app);
