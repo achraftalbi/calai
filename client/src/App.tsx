@@ -78,9 +78,15 @@ function Router() {
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      {isAuthenticated && !isLoading && <AppHeader />}
+      {isAuthenticated && <AppHeader />}
       <Switch>
-        {isLoading || !isAuthenticated ? (
+        {isLoading ? (
+          <Route path="/" component={() => (
+            <div className="bg-slate-50 min-h-screen flex items-center justify-center">
+              <div className="animate-spin w-8 h-8 border-4 border-calai-primary border-t-transparent rounded-full"></div>
+            </div>
+          )} />
+        ) : !isAuthenticated ? (
           <Route path="/" component={Landing} />
         ) : (
           <>
@@ -96,7 +102,7 @@ function Router() {
         )}
         <Route component={NotFound} />
       </Switch>
-      {isAuthenticated && !isLoading && <BottomNavigation />}
+      {isAuthenticated && <BottomNavigation />}
     </div>
   );
 }
