@@ -7,10 +7,7 @@
     "cleartext": false,
     "allowNavigation": [
       "*.repl.co",
-      "*.replit.dev",
-      "*.supabase.co",
-      "*.supabase.in",
-      "accounts.google.com"
+      "*.replit.dev"
     ]
   },
   "plugins": {
@@ -20,9 +17,6 @@
         "sound",
         "alert"
       ]
-    },
-    "CapacitorHttp": {
-      "enabled": true
     }
   }
 }

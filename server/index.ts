@@ -37,84 +37,35 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  try {
-    const server = await registerRoutes(app);
+  const server = await registerRoutes(app);
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-      log(`Error: ${message}`, "error");
-      res.status(status).json({ message });
-    });
+    res.status(status).json({ message });
+    throw err;
+  });
 
-    // Start server first, then setup Vite separately to avoid crashes
-    const port = parseInt(process.env.PORT || '5000', 10);
-    
-    // Add server error handling
-    server.on('error', (error: any) => {
-      log(`Server error: ${error.message}`, "error");
-      if (error.code === 'EADDRINUSE') {
-        log(`Port ${port} is already in use`, "error");
-      }
-    });
-
-    // Start server immediately
-    await new Promise<void>((resolve) => {
-      server.listen(port, "0.0.0.0", () => {
-        log(`serving on port ${port}`);
-        log(`Server is ready to accept connections on http://0.0.0.0:${port}`);
-        resolve();
-      });
-    });
-
-    // Setup Vite after server is listening to prevent crashes
-    if (app.get("env") === "development") {
-      setTimeout(async () => {
-        try {
-          await setupVite(app, server);
-          log("Vite setup completed after server start", "info");
-        } catch (viteError) {
-          log(`Vite setup error: ${viteError instanceof Error ? viteError.message : viteError}`, "error");
-          log("Server continues running without Vite", "warning");
-          
-          // Add fallback route for non-API requests
-          app.use("*", (req, res, next) => {
-            if (req.path.startsWith('/api')) {
-              return next(); // Let API routes handle themselves
-            }
-            res.status(200).send(`
-              <html>
-                <head><title>CalAI</title></head>
-                <body>
-                  <h1>CalAI - Development Mode</h1>
-                  <p>Server is running successfully!</p>
-                  <p>Frontend development server temporarily unavailable.</p>
-                  <p>API endpoints are working normally at <code>/api/*</code></p>
-                </body>
-              </html>
-            `);
-          });
-        }
-      }, 1000);
-    } else {
-      serveStatic(app);
-    }
-
-    // Handle uncaught exceptions and promise rejections
-    process.on('uncaughtException', (error) => {
-      log(`Uncaught Exception: ${error.message}`, "error");
-      console.error(error);
-    });
-
-    process.on('unhandledRejection', (reason, promise) => {
-      log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, "error");
-      console.error(reason);
-    });
-
-  } catch (error) {
-    log(`Server startup error: ${error instanceof Error ? error.message : error}`, "error");
-    console.error(error);
-    process.exit(1);
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
+
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || '5000', 10);
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
 })();
