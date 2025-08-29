@@ -1,0 +1,143 @@
+After trying to connect with google I have this error
+ChatGPT a dit :
+Réflexion durant 24s
+
+You’re very close.
+Both screenshots show that the OAuth callback is going to http://localhost:3000, while your app isn’t running there (or you started the flow on a different origin). That causes:
+
+localhost refused to connect → nothing is listening on localhost:3000.
+
+bad_oauth_state → you started the login on one origin (e.g., Replit) but got redirected to another origin (localhost). The state value can’t be verified across origins.
+
+There’s also a second clue: one of your redirects comes back as
+
+http://localhost:3000/#access_token=...
+
+
+That means the login was triggered by manually hitting the Supabase /auth/v1/authorize URL (implicit flow), not by the SDK (PKCE code flow). Your current callback page expects ?code=..., not #access_token=....
+
+Fix it in 3 steps
+1) Use a single origin today (pick one)
+
+Do either Replit or localhost—not both.
+
+If you choose Replit (recommended now):
+
+Supabase → Authentication → URL Configuration
+
+Site URL: https://<your-app>.replit.dev
+
+Additional Redirect URLs:
+
+https://<your-app>.replit.dev/auth/callback
+calai://auth
+
+
+Make sure your app is opened from the Replit URL when you click “Continue with Google”.
+
+If you choose Localhost instead:
+
+Run the app locally:
+
+cd client
+npm i
+npm run dev -- --host 0.0.0.0 --port 3000
+
+
+Supabase → URL Configuration
+
+Site URL: http://localhost:3000
+
+Additional Redirect URLs:
+
+http://localhost:3000/auth/callback
+calai://auth
+
+
+Don’t mix origins (start on Replit, return to localhost). That’s exactly what produced your errors.
+
+2) Trigger OAuth with the Supabase SDK (PKCE), not a raw /authorize URL
+
+Replace any manual redirect like:
+
+// ❌ don't do this
+window.location.href = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=...`
+
+
+with the SDK call (this does PKCE + correct state handling):
+
+import { Capacitor } from '@capacitor/core';
+import { supabase } from '@/lib/supabase';
+
+const redirectTo = Capacitor.isNativePlatform()
+  ? 'calai://auth'
+  : `${location.origin}/auth/callback`;
+
+await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: { redirectTo },   // this becomes your ONLY callback URL
+});
+
+3) Make your callback handle both flows (robust)
+
+If someone ever hits the raw /authorize URL again, you may get a hash #access_token=.... Make your callback tolerant:
+
+// client/src/pages/AuthCallback.tsx
+import { useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'wouter';
+
+export default function AuthCallback() {
+  const nav = useNavigate();
+
+  useEffect(() => {
+    (async () => {
+      // 1) implicit flow (hash)
+      const hash = new URLSearchParams(location.hash.slice(1));
+      const access_token = hash.get('access_token');
+      const refresh_token = hash.get('refresh_token');
+
+      if (access_token) {
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token: refresh_token ?? '' });
+        // clear the hash to avoid re-running
+        history.replaceState({}, '', location.pathname);
+        if (!error) return nav('/');
+      }
+
+      // 2) PKCE/code flow (query)
+      const code = new URLSearchParams(location.search).get('code');
+      if (code) {
+        await supabase.auth.exchangeCodeForSession({ authCode: code });
+        return nav('/');
+      }
+
+      // nothing to exchange
+      nav('/login');
+    })();
+  }, []);
+
+  return <p className="p-6">Signing you in…</p>;
+}
+
+Quick checklist (verify)
+
+In Supabase URL Configuration, the Site URL and Additional Redirect URLs match the origin you actually use (Replit OR localhost).
+
+Your login button calls supabase.auth.signInWithOAuth(...) (no window.open, no manual /authorize URL).
+
+Your callback page is reachable at /auth/callback and now supports both ?code= and #access_token=.
+
+If you test on Android WebView, capacitor.config.json includes:
+
+"allowNavigation": [
+  "*.replit.dev", "*.repl.co",
+  "*.supabase.co", "*.supabase.in",
+  "accounts.google.com", "apis.google.com"
+]
+
+
+then npx cap sync android.
+
+Do the three steps above (choose one origin, use the SDK, robust callback), and that “localhost refused / bad_oauth_state” will disappear. If anything still breaks, paste the full URL you see in the address bar right after Google redirects—we’ll pinpoint the last mismatch instantly.
+
+ChatGPT peut faire des erreurs. Envisagez de vérifier les informations i

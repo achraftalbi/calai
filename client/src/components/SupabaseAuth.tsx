@@ -8,6 +8,9 @@ interface SupabaseAuthProps {
 }
 
 export function SupabaseAuth({ redirectTo }: SupabaseAuthProps) {
+  // Utiliser l'URL Replit pour le callback au lieu de localhost
+  const callbackUrl = `${window.location.origin}/auth/callback`
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <Card className="w-full max-w-md">
@@ -72,7 +75,7 @@ export function SupabaseAuth({ redirectTo }: SupabaseAuthProps) {
             }}
             theme="light"
             providers={['google']}
-            redirectTo={redirectTo}
+            redirectTo={callbackUrl}
             showLinks={true}
             magicLink={true}
           />

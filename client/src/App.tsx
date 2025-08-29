@@ -14,6 +14,7 @@ import Profile from "@/pages/Profile";
 import Subscribe from "@/pages/Subscribe";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
+import AuthCallback from "@/pages/AuthCallback";
 import NotFound from "@/pages/not-found";
 import { Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
 import { CalAILogo } from "@/components/CalAILogo";
@@ -84,6 +85,7 @@ function Router() {
         {isLoading || !isAuthenticated ? (
           <>
             <Route path="/login" component={Login} />
+            <Route path="/auth/callback" component={AuthCallback} />
             <Route path="/" component={Landing} />
           </>
         ) : (
