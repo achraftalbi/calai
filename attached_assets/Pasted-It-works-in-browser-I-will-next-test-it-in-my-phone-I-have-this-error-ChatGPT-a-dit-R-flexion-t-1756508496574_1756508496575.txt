@@ -1,0 +1,84 @@
+It works in browser I will next test it in my phone. I have this error ?
+ChatGPT a dit :
+Réflexion terminée
+Vous avez dit :
+ChatGPT a dit :
+Réflexion durant 23s
+
+That error means a hook is being called conditionally in client/src/pages/Profile.tsx:
+
+“Rendered more hooks than during the previous render.”
+
+React (and TanStack Query) hooks must be called in the same order on every render — never inside if/else, loops, return branches, event handlers, or try/catch. From your screenshot the culprit is:
+
+const updateProfileMutation = useMutation({
+  mutationFn: (data:any) => apiRequest('PUT', '/api/auth/user/profile', data),
+  onSuccess: () => { ... }
+});
+
+
+You likely have an early return like if (!session) return ... before this line, or the hook is inside a conditional block.
+
+Fix (move hooks to the top, then branch)
+
+Put all hooks at the top of the component, then do conditional rendering after:
+
+// Profile.tsx
+export default function Profile() {
+  const { user } = useAuth();             // any other hooks go here
+  const updateProfile = useMutation({
+    mutationFn: (data: UpdateProfilePayload) =>
+      apiRequest('PUT', '/api/auth/user/profile', data),
+    onSuccess: () => { /* toast, invalidate queries, etc. */ },
+  });
+
+  // do NOT return before hooks
+  if (!user) {
+    return <Redirect to="/login" />;      // after hooks are defined
+  }
+
+  const onSubmit = (form: UpdateProfilePayload) => {
+    updateProfile.mutate(form);           // call mutate, not useMutation
+  };
+
+  return (
+    <ProfileForm
+      defaultValues={{ ... }}
+      onSubmit={onSubmit}
+      isSaving={updateProfile.isPending}
+    />
+  );
+}
+
+Don’ts (common causes)
+
+❌ if (!user) return ...; const updateProfile = useMutation(...)
+
+❌ calling useMutation inside an event handler: onClick={() => useMutation(...)}
+
+❌ calling useMutation only in one branch:
+if (mode === 'edit') { const m = useMutation(...); }
+
+If you need to “disable” some behavior until data is ready, still create the hook, and control behavior with flags (e.g., if (!ready) return ...) or use Query’s enabled option (for useQuery, not needed for useMutation).
+
+Extra safety
+
+Add the ESLint hook rules so the linter catches this early:
+
+npm --prefix client i -D eslint-plugin-react-hooks
+
+
+client/.eslintrc (or package.json -> eslintConfig):
+
+{
+  "plugins": ["react-hooks"],
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn"
+  }
+}
+
+
+Make that change (move useMutation and any other hooks to the top), save, and the error will disappear.
+
+ChatGPT peut faire des erreurs. Envisagez de vérifier les informations importantes.

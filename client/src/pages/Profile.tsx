@@ -48,15 +48,7 @@ export default function Profile() {
 
   const [isEditingBMR, setIsEditingBMR] = useState(false);
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
-      </div>
-    );
-  }
-
-  // Profile update mutation
+  // Profile update mutation - MOVED BEFORE THE CONDITIONAL RETURN
   const updateProfileMutation = useMutation({
     mutationFn: (data: any) => apiRequest('PUT', '/api/auth/user/profile', data),
     onSuccess: () => {
@@ -96,6 +88,15 @@ export default function Profile() {
       });
     }
   });
+
+  // Early return AFTER all hooks are defined
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+      </div>
+    );
+  }
 
   const handleSaveProfile = () => {
     updateProfileMutation.mutate(profileData);
