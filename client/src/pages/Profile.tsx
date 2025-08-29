@@ -26,6 +26,7 @@ import {
 import { Link } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { supabase } from "@/lib/supabase";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -129,6 +130,20 @@ export default function Profile() {
       title: "Export Requested",
       description: "Your data export will be emailed to you within 24 hours."
     });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      // Déconnexion Supabase si connecté via Supabase
+      await supabase.auth.signOut();
+      
+      // Déconnexion Replit (fallback)
+      window.location.href = '/api/logout';
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // Fallback vers Replit logout
+      window.location.href = '/api/logout';
+    }
   };
 
   const subscriptionStatus = (user as any)?.subscriptionStatus || 'free';
@@ -493,7 +508,7 @@ export default function Profile() {
         <Button
           variant="outline"
           className="w-full"
-          onClick={() => window.location.href = '/api/logout'}
+          onClick={handleSignOut}
         >
           Sign Out
         </Button>
