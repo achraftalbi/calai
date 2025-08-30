@@ -1,0 +1,142 @@
+J'ai toujours le meme probleme : 
+ChatGPT a dit :
+Réflexion durant 25s
+
+OK, on règle ça proprement. Ton écran rouge vient du WebView qui n’obtient pas l’autorisation caméra quand ton code fait getUserMedia. Sur Android (Capacitor), il faut 3 choses en même temps :
+
+la permission dans le Manifest
+
+relayer la demande de permission du WebView → Android
+
+ne pas demander un combo audio+video si tu n’as pas la permission micro.
+
+Fais exactement ces étapes (copie/colle) :
+
+1) Manifest : ajoute/verify ces lignes (hors <application>)
+
+android/app/src/main/AndroidManifest.xml
+
+<!-- Déjà présent -->
+<uses-permission android:name="android.permission.INTERNET" />
+
+<!-- Caméra (et micro si jamais tu demandes audio:true) -->
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+<!-- Déclare que la caméra est supportée (mais pas obligatoire) -->
+<uses-feature android:name="android.hardware.camera.any" android:required="false" />
+<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+
+Dans la balise <application …> ajoute si absent :
+
+android:hardwareAccelerated="true"
+
+
+Garde bien tes deux intent-filters (LAUNCHER + deep-link calai://auth).
+
+2) MainActivity : relayer la demande du WebView
+
+android/app/src/main/java/com/calai/app/MainActivity.java
+
+package com.calai.app;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+import android.webkit.WebChromeClient;
+import android.webkit.PermissionRequest;
+
+public class MainActivity extends BridgeActivity {
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+
+    // Autorise getUserMedia() (caméra/micro) depuis le WebView
+    getBridge().getWebView().setWebChromeClient(new WebChromeClient() {
+      @Override
+      public void onPermissionRequest(final PermissionRequest request) {
+        runOnUiThread(() -> {
+          // → Accorde ce que demande le WebView (camera/micro)
+          request.grant(request.getResources());
+        });
+      }
+    });
+  }
+}
+
+
+Si ton fichier n’est pas à ce chemin EXACT, adapte le package et l’android:name du manifest.
+
+3) Ton code JS : évite audio:true si tu n’en as pas besoin
+
+Dans la fonction qui ouvre la caméra, mets une contrainte vidéo seule + fallback :
+
+const constraints: MediaStreamConstraints = {
+  video: { facingMode: { ideal: 'environment' } }, // dos
+  audio: false                                     // important !
+};
+
+try {
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  videoEl.srcObject = stream;
+} catch (err:any) {
+  console.log('getUserMedia error:', err.name, err.message);
+  // fallback simple
+  const alt = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+  videoEl.srcObject = alt;
+}
+
+4) Rebuild propre (important)
+# à la racine du projet
+npx cap sync android
+
+# (facultatif mais utile) nettoyage gradle
+cd android && .\gradlew clean && cd ..
+
+# DÉSINSTALLE l’appli du téléphone (elle mémorise les refus)
+npx cap open android
+# puis Run ▶ depuis Android Studio
+
+5) Vérifie la permission côté Android
+
+Paramètres → Applications → CalAI → Autorisations → Caméra = Autorisée (si tu avais cliqué “Ne pas autoriser”, Android ne redemande plus).
+
+Mets à jour Android System WebView / Chrome.
+
+6) Debug rapide (si ça persiste)
+
+Logcat (filtre PermissionRequest ou getUserMedia) : tu dois voir que onPermissionRequest est appelé.
+
+Dans la console de l’app, logge navigator.permissions.query({ name: 'camera' }) et l’erreur exacte (NotAllowedError / NotFoundError / SecurityError).
+
+Si ton build charge l’UI depuis Replit (server.url), vérifie que c’est bien HTTPS (c’est le cas) et que tes domaines sont dans allowNavigation.
+
+Plan B immédiat (pour avancer)
+
+Sur mobile uniquement, remplace l’aperçu live par le plugin Capacitor Camera (photo) et conserve le live preview sur web. Pas de permission WebView à gérer, c’est 100% natif :
+
+import { Capacitor } from '@capacitor/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+
+async function captureFoodPhoto() {
+  if (!Capacitor.isNativePlatform()) return; // garde le live sur web
+  const photo = await Camera.getPhoto({
+    source: CameraSource.Camera,
+    resultType: CameraResultType.Uri,
+    quality: 85
+  });
+  // envoie l'image à ton analyseur
+}
+
+Résumé
+
+Manifest (CAMERA + RECORD_AUDIO + features) ✔
+
+MainActivity : onPermissionRequest() ✔
+
+JS : audio:false si inutile ✔
+
+Sync + clean + réinstallation ✔
+
+Applique ces 4 points, et la preview doit s’afficher. Si tu veux, colle ici le contenu actuel de MainActivity.java et de ton AndroidManifest.xml, je te dis si quelque chose cloche.

@@ -34,7 +34,8 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
             width: { ideal: 1280 },
             height: { ideal: 720 },
             facingMode: 'environment' // Use back camera on mobile
-          }
+          },
+          audio: false // Important: no audio to avoid permission issues
         });
       } catch (backCameraError) {
         console.log("Back camera not available, trying front camera...");
@@ -43,7 +44,8 @@ export default function CameraInterface({ onCapture, isProcessing, className }: 
           video: {
             width: { ideal: 1280 },
             height: { ideal: 720 }
-          }
+          },
+          audio: false // Important: no audio to avoid permission issues
         });
       }
       
