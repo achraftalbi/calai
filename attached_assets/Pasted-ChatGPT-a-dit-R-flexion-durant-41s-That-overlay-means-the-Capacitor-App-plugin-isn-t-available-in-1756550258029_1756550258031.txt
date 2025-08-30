@@ -1,0 +1,104 @@
+ChatGPT a dit :
+Réflexion durant 41s
+
+That overlay means the Capacitor App plugin isn’t available in your native build. On Android you’ll see:
+
+"App" plugin is not implemented on android
+
+This happens when:
+
+@capacitor/app wasn’t installed at the project root, or
+
+you didn’t run npx cap sync android after installing, or
+
+you’re running an old APK that was built before the plugin was added, or
+
+versions of Capacitor packages don’t match.
+
+Do this exactly:
+
+1) Install the plugins at the root and sync
+
+Run these in the folder that contains capacitor.config.json:
+
+npm i -E @capacitor/app @capacitor/browser @capacitor/core @capacitor/android
+npx cap sync android
+
+
+(If you previously ran npm --prefix client i …, reinstall at the root—Capacitor reads the root package.json.)
+
+Optional sanity checks:
+
+npm ls @capacitor/app @capacitor/browser @capacitor/core @capacitor/android
+npx cap doctor    # should list @capacitor/app in “Installed plugins” and “Android project”
+
+
+All packages should be the same major version (e.g., all v5 or all v6).
+
+2) Rebuild a clean APK
+cd android
+gradlew clean
+cd ..
+npx cap open android
+
+
+Uninstall the previous app from your phone, then click Run ▶ in Android Studio.
+
+3) Guard your code (prevents crash if plugin missing / web)
+
+Where you add the listener and open the browser:
+
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
+
+// attach once on startup
+if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('App')) {
+  App.addListener('appUrlOpen', async ({ url }) => {
+    // handle calai://auth
+  });
+}
+
+// when starting Google OAuth on native:
+if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Browser')) {
+  await Browser.open({ url: data.url! });
+} else {
+  window.location.href = data.url!; // web fallback
+}
+
+4) Make sure the deep link is registered
+
+AndroidManifest.xml → in your MainActivity:
+
+<activity
+    android:name="com.calai.app.MainActivity"
+    android:exported="true"
+    android:launchMode="singleTask">
+
+    <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="calai" android:host="auth" />
+    </intent-filter>
+</activity>
+
+
+And in Supabase Additional Redirect URLs include:
+
+calai://auth
+
+5) (Optional) Hide the Vite overlay in the app
+
+If the dev overlay annoys you on device:
+
+// client/vite.config.ts
+export default defineConfig({
+  server: { hmr: { overlay: false } },
+});
+
+TL;DR
+
+Install @capacitor/app + @capacitor/browser at the root, npx cap sync android, clean/rebuild, and add small guards with Capacitor.isPluginAvailable. After that, Google login will open in a Custom Tab and return to your app via calai://auth without throwing the “plugin not implemented” error.
+
+ChatGPT peut faire des erreurs. Envisagez de vérifier les informations importantes.
