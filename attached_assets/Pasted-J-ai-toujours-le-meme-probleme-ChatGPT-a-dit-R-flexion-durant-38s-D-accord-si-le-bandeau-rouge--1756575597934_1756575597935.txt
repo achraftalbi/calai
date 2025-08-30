@@ -1,0 +1,324 @@
+J'ai toujours le meme probleme
+ChatGPT a dit :
+Réflexion durant 38s
+
+D’accord — si le bandeau rouge « Unable to access camera » persiste, c’est (presque toujours) parce que l’autorisation CAMERA au niveau Android n’est pas accordée au process avant l’appel à getUserMedia. Le WebChromeClient.onPermissionRequest() que tu as ajouté ne demande pas l’autorisation au système : il accorde simplement ce que le WebView demande… si l’app a déjà l’autorisation runtime.
+On va donc :
+
+Demander l’autorisation CAMERA (et MIC si besoin) côté natif au démarrage.
+
+Garder le pont WebView qui relaye getUserMedia.
+
+S’assurer que ton JS ne demande pas audio:true si tu ne gères pas le micro.
+
+1) Manifest (vérifie)
+
+android/app/src/main/AndroidManifest.xml (hors <application>)
+
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-feature android:name="android.hardware.camera.any" android:required="false" />
+<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+
+Dans <application …> ajoute si absent :
+
+android:hardwareAccelerated="true"
+
+2) MainActivity complet (avec demande runtime + BridgeWebChromeClient)
+
+android/app/src/main/java/com/calai/app/MainActivity.java
+
+package com.calai.app;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebChromeClient;
+
+import android.webkit.PermissionRequest;
+
+public class MainActivity extends BridgeActivity {
+
+  private static final int REQ_PERMS = 2001;
+
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+
+    // 1) Demander les permissions runtime si pas encore accordées
+    requestMediaPermissionsIfNeeded();
+
+    // 2) Laisser le WebView accorder getUserMedia() (caméra/micro) au site chargé
+    getBridge().getWebView().setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
+      @Override
+      public void onPermissionRequest(final PermissionRequest request) {
+        runOnUiThread(() -> request.grant(request.getResources()));
+      }
+    });
+  }
+
+  private void requestMediaPermissionsIfNeeded() {
+    boolean needCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+        != PackageManager.PERMISSION_GRANTED;
+
+    boolean needMic = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+        != PackageManager.PERMISSION_GRANTED;
+
+    if (needCamera || needMic) {
+      ActivityCompat.requestPermissions(
+          this,
+          new String[] { Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO },
+          REQ_PERMS
+      );
+    }
+  }
+}
+
+
+Important : on utilise BridgeWebChromeClient pour ne pas casser l’intégration Capacitor, et on demande réellement l’autorisation système au démarrage.
+
+3) JS : ne demande que la vidéo (pas d’audio)
+
+Dans ta fonction d’ouverture de la caméra :
+
+const constraints: MediaStreamConstraints = {
+  video: { facingMode: { ideal: 'environment' } },
+  audio: false
+};
+
+try {
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  videoEl.srcObject = stream;
+} catch (err) {
+  // Fallback minimal
+  const alt = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+  videoEl.srcObject = alt;
+}
+
+
+Si tu veux forcer la demande OS depuis JS, tu peux en plus faire au démarrage :
+
+import { Camera } from '@capacitor/camera';
+await Camera.requestPermissions({ permissions: ['camera'] });
+
+
+(même si tu n’utilises pas le plugin pour prendre la photo)
+
+4) Rebuild propre (sinon Android garde l’ancienne config)
+# à la racine du projet
+npx cap sync android
+cd android && ./gradlew clean  # .\gradlew clean sous Windows
+cd ..
+
+# DÉSINSTALLE l’app du téléphone (très important si tu as déjà cliqué "Refuser")
+npx cap open android
+# puis Run ▶ depuis Android Studio
+
+
+Sur le téléphone : Paramètres → Applications → CalAI → Autorisations → Caméra = Autorisée.
+Mets à jour Android System WebView/Chrome.
+
+Si malgré tout ça, toujours rouge
+
+Logcat : filtre PermissionRequest / getUserMedia pour voir si onPermissionRequest se déclenche.
+
+Vérifie que l’URL chargée est bien HTTPS (ton server.url Replit).
+
+Essaie temporairement de capturer via Capacitor Camera (photo) pour valider que la permission OS est accordée :
+
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+const p = await Camera.getPhoto({ source: CameraSource.Camera, resultType: CameraResultType.Uri });
+
+
+Si ça marche mais pas le live preview, c’est uniquement le pont WebView qui manquait — ce que corrige le BridgeWebChromeClient + la demande runtime ci-dessus.
+
+Applique ces patchs à l’identique, refais un sync + clean + reinstall, et la preview devrait s’allumer.
+
+Vous avez dit :
+J'ai pushe le code peux tu vérifier
+ChatGPT a dit :
+Réflexion durant 49s
+
+Top ! Je viens d’essayer d’ouvrir ton repo pour “vérifier” mais depuis mon environnement je ne peux pas charger les fichiers GitHub de manière fiable (limitation technique ici). Du coup, je te donne un checklist ultra‐précis + les exacts contenus à comparer/coller. Si tout correspond, la caméra fonctionnera.
+
+À vérifier / corriger
+1) AndroidManifest.xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Réseau + Caméra + (Mic si tu demandes audio dans getUserMedia) -->
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+  <!-- Facultatif mais utile -->
+  <uses-feature android:name="android.hardware.camera.any" android:required="false"/>
+  <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+
+  <application
+      android:allowBackup="true"
+      android:icon="@mipmap/ic_launcher"
+      android:label="@string/app_name"
+      android:roundIcon="@mipmap/ic_launcher_round"
+      android:supportsRtl="true"
+      android:hardwareAccelerated="true"
+      android:theme="@style/AppTheme">
+
+    <activity
+        android:name="com.calai.app.MainActivity"
+        android:exported="true"
+        android:launchMode="singleTask">
+
+      <!-- Deep link si tu utilises calai://auth -->
+      <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="calai" android:host="auth"/>
+      </intent-filter>
+    </activity>
+
+    <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="${applicationId}.fileprovider"
+        android:exported="false"
+        android:grantUriPermissions="true">
+      <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/file_paths"/>
+    </provider>
+  </application>
+</manifest>
+
+2) MainActivity.java
+
+Important : demande runtime + BridgeWebChromeClient (pour relayer getUserMedia au WebView).
+
+package com.calai.app;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebChromeClient;
+
+import android.webkit.PermissionRequest;
+
+public class MainActivity extends BridgeActivity {
+
+  private static final int REQ_PERMS = 2001;
+
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+
+    // 1) Demander les autorisations Android si manquantes
+    requestMediaPermissionsIfNeeded();
+
+    // 2) Laisser le WebView accorder getUserMedia (cam/mic) au site chargé
+    getBridge().getWebView().setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
+      @Override
+      public void onPermissionRequest(final PermissionRequest request) {
+        runOnUiThread(() -> request.grant(request.getResources()));
+      }
+    });
+  }
+
+  private void requestMediaPermissionsIfNeeded() {
+    boolean needCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+        != PackageManager.PERMISSION_GRANTED;
+    boolean needMic = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+        != PackageManager.PERMISSION_GRANTED;
+
+    if (needCamera || needMic) {
+      ActivityCompat.requestPermissions(
+          this,
+          new String[]{ Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO },
+          REQ_PERMS
+      );
+    }
+  }
+}
+
+3) capacitor.config.json
+
+Tu peux laisser server.url vers ton Replit HTTPS.
+
+Ajoute/valide allowNavigation pour les sous-domaines Replit si besoin.
+
+Exemple :
+
+{
+  "appId": "com.calai.app",
+  "appName": "CalAI",
+  "webDir": "www",
+  "server": {
+    "url": "https://<ton-replit>.replit.dev",
+    "cleartext": false,
+    "allowNavigation": ["*.repl.co", "*.replit.dev"]
+  }
+}
+
+4) Côté JS (très important)
+
+Ne demande pas le micro si tu ne l’utilises pas :
+
+const stream = await navigator.mediaDevices.getUserMedia({
+  video: { facingMode: { ideal: 'environment' } },
+  audio: false
+});
+
+
+Option bonus (pas obligatoire) au démarrage :
+
+import { Camera } from '@capacitor/camera';
+await Camera.requestPermissions({ permissions: ['camera'] });
+
+Rebuild propre
+
+Désinstalle l’app du téléphone (pour remettre les permissions à zéro).
+
+Dans le projet :
+
+npx cap sync android
+cd android && ./gradlew clean   # (Windows: .\gradlew clean)
+
+
+Ouvre Android Studio → Run ▶ sur ton A53.
+
+Vérifications rapides
+
+Sur le téléphone : Paramètres → Applications → CalAI → Autorisations → Caméra = Autorisée.
+
+Si tu avais cliqué “Refuser et ne plus demander”, seule la désinstallation remettra le prompt.
+
+Test en ligne de commande si besoin :
+
+adb shell pm grant com.calai.app android.permission.CAMERA
+adb shell dumpsys package com.calai.app | grep -i CAMERA -n
+
+
+Assure-toi que Chrome/WebView Android est à jour (Play Store).
+
+Ce que je regarderais dans ton repo
+
+android/app/src/main/AndroidManifest.xml : présence des 3 permissions + hardwareAccelerated.
+
+android/app/src/main/java/com/calai/app/MainActivity.java : le code ci-dessus (pas un WebChromeClient “nu”, mais BridgeWebChromeClient).
+
+capacitor.config.json : server.url HTTPS correct + allowNavigation.
+
+client : getUserMedia({ video:true, audio:false }).
+
+Si tu me colles ici le contenu de ces trois fichiers (ou un lien raw), je te dis en deux lignes si tout est bon. Mais si tu appliques exactement ce qui est ci-dessus puis sync + clean + reinstall, ta preview caméra devrait s’afficher.
