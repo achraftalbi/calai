@@ -1,0 +1,68 @@
+It works, thanks but now I have this error :
+ChatGPT a dit :
+Réflexion durant 39s
+
+That message means the WebView can’t open the camera because the Android app doesn’t have camera permission (in a browser you’d see a “Allow camera?” popup, but inside a Capacitor app the popup only appears if the permission is declared).
+
+Do this:
+
+1) Add camera permissions to AndroidManifest.xml
+
+Place these outside <application>, next to your INTERNET permission:
+
+<!-- Permissions -->
+<uses-permission android:name="android.permission.INTERNET" />
+
+<!-- Camera / (mic only if you also record audio) -->
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<!-- Features help Play Store & some devices pick the right camera -->
+<uses-feature android:name="android.hardware.camera.any" />
+<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+
+(Keep your existing <provider> and deep-link code unchanged.)
+
+2) Sync and rebuild
+npx cap sync android
+npx cap open android
+
+
+Uninstall the previous build from your phone (to reset denied permissions).
+
+Run ▶ again.
+
+The first time you tap Open Camera, Android should show the system permission dialog; choose Allow.
+
+3) If you previously tapped “Don’t allow”
+
+Go to Settings → Apps → CalAI → Permissions → Camera and set to Allow. Then relaunch the app.
+
+4) (Optional) Better UX & fallback in code
+
+If you’re using getUserMedia, keep a safe fallback:
+
+const tryOpenCamera = async () => {
+  const constraints: MediaStreamConstraints = {
+    video: { facingMode: { ideal: 'environment' } }
+  };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    videoEl.srcObject = stream;
+  } catch (e) {
+    // fallback if back camera not available
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    videoEl.srcObject = stream;
+  }
+};
+
+
+If the user denies repeatedly, offer a button to open app settings:
+
+import { App } from '@capacitor/app';
+await App.openSettings();
+
+
+After adding the manifest permissions and rebuilding, the camera preview should work in the native app.
+
+ChatGPT peut faire des erreurs. Envisagez de vérifier les informations importantes.
