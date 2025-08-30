@@ -1,0 +1,92 @@
+Still have the some problem, you can check my public repository to undestand the problem : https://github.com/achraftalbi/calai
+ChatGPT a dit :
+Réflexion durant 2m 9s
+
+Good news: your app itself is fine—the camera is failing because the Android WebView isn’t getting a camera permission grant. In a Capacitor app that uses getUserMedia (live preview), you must both declare the permission and forward the WebView’s permission request to Android.
+
+Here’s the minimal fix (no plugin changes):
+
+1) Manifest: declare camera + (optional) feature
+
+Open android/app/src/main/AndroidManifest.xml and add these outside <application>:
+
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.CAMERA" />
+<!-- Optional: allow install on devices without a camera -->
+<uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+
+(You already have the deep-link activity; keep it. Make sure your launcher filter is present on MainActivity too:
+
+<intent-filter>
+  <action android:name="android.intent.action.MAIN" />
+  <category android:name="android.intent.category.LAUNCHER" />
+</intent-filter>
+
+
+)
+
+2) MainActivity: auto-grant WebView media permissions
+
+In android/app/src/main/java/com/calai/app/MainActivity.java (create it if it doesn’t exist), use:
+
+package com.calai.app;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
+
+public class MainActivity extends BridgeActivity {
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+
+    // Forward getUserMedia() permission requests (camera/mic) to Android
+    getBridge().getWebView().setWebChromeClient(new WebChromeClient() {
+      @Override
+      public void onPermissionRequest(final PermissionRequest request) {
+        runOnUiThread(() -> request.grant(request.getResources()));
+      }
+    });
+  }
+}
+
+
+That’s the bit that makes the native permission dialog appear/resolve when your React code calls navigator.mediaDevices.getUserMedia(...).
+
+3) Capacitor server config (already looks good)
+
+In capacitor.config.json, keep your HTTPS URL and allowed domains:
+
+"server": {
+  "url": "https://<your-replit-subdomain>.replit.dev",
+  "cleartext": false,
+  "allowNavigation": ["*.replit.dev", "*.picard.replit.dev"]
+}
+
+4) Rebuild & run
+
+From your project root:
+
+npx cap sync android
+npx cap open android
+# Run from Android Studio on your A53
+
+5) If it still shows the red box
+
+Go to Settings → Apps → CalAI → Permissions and manually ensure Camera = Allowed (if you previously denied it, Android remembers “Don’t ask again”).
+
+Make sure Android System WebView / Chrome is up to date.
+
+Test your “Open Camera” button again. The preview should appear.
+
+Optional (but nice to have)
+
+If you ever decide to avoid getUserMedia in WebView, you can switch the native flow on mobile:
+
+Web: keep getUserMedia.
+
+Native (Capacitor): use @capacitor/camera to capture a still image and feed it into your analysis. That path needs no WebView media permissions, but you lose the live preview.
+
+Try the two edits above (manifest + MainActivity) and rebuild—this is the usual missing piece behind the “Unable to access camera… click Allow” message inside a Capacitor Android build.

@@ -39,7 +39,7 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_stripe==1.0.0", "javascript_websocket==1.0.0", "javascript_paypal==1.0.0", "javascript_supabase==1.0.0"]
+integrations = ["javascript_websocket==1.0.0", "javascript_paypal==1.0.0", "javascript_stripe==1.0.0", "javascript_supabase==1.0.0"]
 
 [objectStorage]
 defaultBucketID = "replit-objstore-7b7145e6-f153-4dbb-b785-1a8b849ff9f3"
