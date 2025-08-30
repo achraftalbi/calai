@@ -1,0 +1,167 @@
+The application is well opened but after google connexion it goes to browser and don't stay in the application
+ChatGPT a dit :
+Réflexion durant 28s
+
+Great progress! What you’re seeing (OAuth opening the external browser and not returning) happens when the app isn’t handling the deep link back to your app. With Capacitor the correct pattern is:
+
+open Google in a Custom Tab (@capacitor/browser)
+
+return to the app via a deep link (e.g., calai://auth)
+
+exchange the auth code with Supabase
+
+close the Custom Tab
+
+Do the steps below once and your login will stay “in-app” and bounce back automatically.
+
+1) Make sure the redirect is registered
+
+In Supabase → Auth → URL Configuration add:
+
+calai://auth
+
+
+(Keep your Replit callback for web.)
+
+2) Android deep link + singleTask
+
+Edit android/app/src/main/AndroidManifest.xml and add to your MainActivity tag:
+
+<activity
+    android:name="com.calai.app.MainActivity"
+    android:exported="true"
+    android:launchMode="singleTask">   <!-- important for deep links -->
+
+    <!-- Deep link for calai://auth -->
+    <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="calai" android:host="auth" />
+    </intent-filter>
+</activity>
+
+
+(If your package name differs, keep the same activity; Capacitor’s default is MainActivity extending BridgeActivity.)
+
+3) Install the Capacitor helpers
+
+In your project root:
+
+npm i @capacitor/app @capacitor/browser
+npx cap sync android
+
+4) Use the SDK with Custom Tabs on native
+
+In client/src/lib/auth.ts (or where your login button calls Google), use this:
+
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { App } from '@capacitor/app';
+import { supabase } from '@/lib/supabase';
+
+export async function signInWithGoogle() {
+  if (Capacitor.isNativePlatform()) {
+    // Ask Supabase for the URL but DON'T redirect automatically
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'calai://auth',
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) throw error;
+
+    // Open in a Custom Tab (in-app)
+    await Browser.open({ url: data.url! });
+  } else {
+    // Web: normal redirect back to /auth/callback
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${location.origin}/auth/callback` },
+    });
+  }
+}
+
+// Attach this once in App bootstrap (e.g., App.tsx or main.tsx)
+export function attachAppUrlOpenListener(navigate: (path: string) => void) {
+  App.addListener('appUrlOpen', async ({ url }) => {
+    // Example: calai://auth?code=... or calai://auth#access_token=...
+    if (url.startsWith('calai://auth')) {
+      await Browser.close();
+
+      const u = new URL(url.replace('calai://auth', 'https://calai/auth'));
+      const code = u.searchParams.get('code');
+
+      if (code) {
+        // PKCE/code flow
+        await supabase.auth.exchangeCodeForSession({ authCode: code });
+        navigate('/'); // go to home
+        return;
+      }
+
+      // (Optional) handle implicit hash if ever used
+      const hash = new URLSearchParams(url.split('#')[1] || '');
+      const access_token = hash.get('access_token');
+      const refresh_token = hash.get('refresh_token');
+      if (access_token) {
+        await supabase.auth.setSession({
+          access_token,
+          refresh_token: refresh_token ?? '',
+        });
+        navigate('/');
+      }
+    }
+  });
+}
+
+
+Then, in your app entry (e.g., client/src/main.tsx or App.tsx), call:
+
+import { attachAppUrlOpenListener } from '@/lib/auth';
+import { useLocation } from 'wouter';
+
+const [, setLocation] = useLocation();
+attachAppUrlOpenListener((p) => setLocation(p));
+
+5) Allow Google/Supabase in Capacitor (already likely done)
+
+capacitor.config.json:
+
+{
+  "appId": "com.calai.app",
+  "appName": "CalAI",
+  "webDir": "client/dist",
+  "server": {
+    "allowNavigation": [
+      "*.replit.dev", "*.repl.co",
+      "*.supabase.co", "*.supabase.in",
+      "accounts.google.com", "apis.google.com"
+    ]
+  }
+}
+
+
+Rebuild:
+
+npm --prefix client run build   # if you bundle assets
+npx cap copy android
+npx cap open android  # then Run ▶ on your device
+
+Why the browser opened before
+
+Without the listener + intent-filter + Custom Tab, Supabase redirects to the system browser and your app doesn’t know how to handle the return. With the setup above, it opens in a Custom Tab and comes back via calai://auth to the same WebView instance (singleTask) where we exchange the code and log the user in.
+
+If anything still pops to Chrome and doesn’t return, double-check:
+
+calai://auth is in Supabase → Additional Redirect URLs,
+
+the intent-filter is exactly scheme="calai" host="auth",
+
+android:launchMode="singleTask" is set on MainActivity,
+
+you called App.addListener('appUrlOpen', ...) once on startup,
+
+and you used skipBrowserRedirect: true + Browser.open({ url }).
+
+Ping me with any console/logcat output if it doesn’t bounce back and I’ll pinpoint the remaining tweak.

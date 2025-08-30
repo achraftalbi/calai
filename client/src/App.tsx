@@ -4,6 +4,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { attachAppUrlOpenListener } from "@/lib/auth";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
 import Home from "@/pages/Home";
 import History from "@/pages/History";
 import Analytics from "@/pages/Analytics";
@@ -18,7 +21,6 @@ import AuthCallback from "@/pages/AuthCallback";
 import NotFound from "@/pages/not-found";
 import { Home as HomeIcon, BarChart3, Settings as SettingsIcon, Clock, ScanLine, Heart, User } from "lucide-react";
 import { CalAILogo } from "@/components/CalAILogo";
-import { useLocation } from "wouter";
 
 function AppHeader() {
   return (
@@ -77,6 +79,12 @@ function BottomNavigation() {
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Configurer le listener des deep links une seule fois
+  useEffect(() => {
+    attachAppUrlOpenListener((path) => setLocation(path));
+  }, [setLocation]);
 
   return (
     <div className="bg-slate-50 min-h-screen">
