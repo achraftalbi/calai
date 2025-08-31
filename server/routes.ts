@@ -14,7 +14,19 @@ import { analyzeFoodImage } from "./services/gemini";
 import { insertFoodScanSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { verifySupabaseAuth } from "./supabaseAuth";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+
+// Universal auth middleware that supports both Replit and Supabase
+function universalAuth(req: any, res: any, next: any) {
+  // Check if it's Supabase authentication first
+  if (req.headers.authorization?.startsWith('Bearer ')) {
+    return verifySupabaseAuth(req, res, next);
+  }
+  
+  // Otherwise use Replit authentication
+  return isAuthenticated(req, res, next);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
@@ -61,7 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Food scanning endpoints (protected)
-  app.post("/api/food-scan/upload", isAuthenticated, async (req, res) => {
+  app.post("/api/food-scan/upload", universalAuth, async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -72,10 +84,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/food-scan/analyze", isAuthenticated, async (req: any, res) => {
+  app.post("/api/food-scan/analyze", universalAuth, async (req: any, res) => {
     try {
       const { imageUrl } = req.body;
-      const userId = req.user.claims.sub; // Get user ID from auth
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       
       if (!imageUrl) {
         return res.status(400).json({ error: "imageUrl is required" });

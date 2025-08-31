@@ -111,11 +111,31 @@ export default function Home() {
       setIsProcessing(false);
       setProcessingProgress(0);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload/analysis error:', error);
+      let title = "Upload Failed";
+      let description = "Failed to upload and analyze image. Please try again.";
+      
+      if (error.message?.includes('401')) {
+        title = "Authentication Required";
+        description = "Please log in to analyze food images";
+      } else if (error.message?.includes('413')) {
+        title = "Image Too Large";
+        description = "Please use a smaller image (max 10MB)";
+      } else if (error.message?.includes('415')) {
+        title = "Invalid Image Format";
+        description = "Please use JPG, PNG, or WebP format";
+      } else if (error.message?.includes('Upload failed')) {
+        title = "Upload Error";
+        description = `Upload failed: ${error.message}`;
+      } else if (error.message?.includes('Analysis')) {
+        title = "Analysis Failed";
+        description = "AI analysis failed. Please try with a clearer image.";
+      }
+      
       toast({
-        title: "Upload Failed",
-        description: "Failed to upload and analyze image. Please try again.",
+        title,
+        description,
         variant: "destructive",
       });
       setIsProcessing(false);

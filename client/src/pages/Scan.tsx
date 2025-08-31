@@ -50,23 +50,33 @@ export default function Scan() {
     setProcessingProgress(0);
     
     try {
-      // Simulate processing steps
-      const steps = [
-        { progress: 20, message: "Uploading image..." },
-        { progress: 40, message: "AI analyzing food..." },
-        { progress: 70, message: "Calculating nutrition..." },
-        { progress: 90, message: "Finalizing results..." }
-      ];
+      setProcessingProgress(20);
+      
+      // Get upload URL first
+      const uploadResponse = await apiRequest('POST', '/api/food-scan/upload');
+      const { uploadURL } = await uploadResponse.json();
+      
+      setProcessingProgress(40);
+      
+      // Upload file to signed URL  
+      const uploadResult = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
 
-      for (const step of steps) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setProcessingProgress(step.progress);
+      if (!uploadResult.ok) {
+        throw new Error(`Upload failed: ${uploadResult.status} ${uploadResult.statusText}`);
       }
 
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const response = await apiRequest('POST', '/api/analyze-food', formData);
+      setProcessingProgress(70);
+      
+      // Analyze the uploaded image
+      const response = await apiRequest('POST', '/api/food-scan/analyze', {
+        imageUrl: uploadURL,
+      });
 
       const result = await response.json();
       
@@ -89,11 +99,28 @@ export default function Scan() {
       setShowPortionEditor(true);
       setProcessingProgress(100);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis failed:', error);
+      let title = "Analysis Failed";
+      let description = "Please try again with a clearer image";
+      
+      if (error.message?.includes('401')) {
+        title = "Authentication Required";
+        description = "Please log in to analyze food images";
+      } else if (error.message?.includes('413')) {
+        title = "Image Too Large";
+        description = "Please use a smaller image (max 10MB)";
+      } else if (error.message?.includes('415')) {
+        title = "Invalid Image Format";
+        description = "Please use JPG, PNG, or WebP format";
+      } else if (error.message?.includes('Upload failed')) {
+        title = "Upload Failed";
+        description = `Upload error: ${error.message}`;
+      }
+      
       toast({
-        title: "Analysis Failed",
-        description: "Please try again with a clearer image",
+        title,
+        description,
         variant: "destructive"
       });
     } finally {
