@@ -18,10 +18,41 @@ import { verifySupabaseAuth } from "./supabaseAuth";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 
 // Universal auth middleware that supports both Replit and Supabase
-function universalAuth(req: any, res: any, next: any) {
+async function universalAuth(req: any, res: any, next: any) {
   // Check if it's Supabase authentication first
   if (req.headers.authorization?.startsWith('Bearer ')) {
-    return verifySupabaseAuth(req, res, next);
+    return verifySupabaseAuth(req, res, async (error?: any) => {
+      if (error) return next(error);
+      
+      // Auto-create Supabase user in database if they don't exist
+      if (req.supabaseUser) {
+        try {
+          const userId = req.supabaseUser.id;
+          let user = await storage.getUser(userId);
+          
+          if (!user) {
+            // Create new user from Supabase data
+            const userData = {
+              id: userId,
+              email: req.supabaseUser.email || '',
+              firstName: req.supabaseUser.user_metadata?.first_name || req.supabaseUser.user_metadata?.name?.split(' ')[0] || '',
+              lastName: req.supabaseUser.user_metadata?.last_name || req.supabaseUser.user_metadata?.name?.split(' ').slice(1).join(' ') || '',
+              profileImageUrl: req.supabaseUser.user_metadata?.picture || req.supabaseUser.user_metadata?.avatar_url || null,
+              subscriptionStatus: 'free' as const,
+              dailyScansUsed: 0,
+            };
+            
+            user = await storage.upsertUser(userData);
+            console.log('Auto-created Supabase user:', userId);
+          }
+        } catch (createError) {
+          console.error('Error auto-creating Supabase user:', createError);
+          // Don't fail the request, continue with auth
+        }
+      }
+      
+      next();
+    });
   }
   
   // Otherwise use Replit authentication
@@ -90,14 +121,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user ID from either Supabase or Replit auth
       const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       
+      console.log('Food scan analyze request:', { 
+        userId, 
+        hasSupabaseUser: !!req.supabaseUser, 
+        hasReplitUser: !!req.user,
+        imageUrl: imageUrl ? 'provided' : 'missing'
+      });
+      
       if (!imageUrl) {
         return res.status(400).json({ error: "imageUrl is required" });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "User authentication failed" });
       }
 
       // Check scan limits for non-pro users
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        console.error('User not found in database:', userId);
+        return res.status(404).json({ error: "User not found in database" });
       }
 
       // Check if user has reached daily scan limit
