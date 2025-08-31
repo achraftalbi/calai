@@ -31,27 +31,37 @@ async function universalAuth(req: any, res: any, next: any) {
           let user = await storage.getUser(userId);
           
           if (!user) {
-            // Create new user from Supabase data
-            const firstName = req.supabaseUser.user_metadata?.first_name || req.supabaseUser.user_metadata?.name?.split(' ')[0] || '';
-            const lastName = req.supabaseUser.user_metadata?.last_name || req.supabaseUser.user_metadata?.name?.split(' ').slice(1).join(' ') || '';
+            // Check if user exists by email (from previous Replit auth)
             const email = req.supabaseUser.email || '';
+            const existingUser = await storage.getUserByEmail(email);
             
-            const userData = {
-              id: userId,
-              username: email.split('@')[0] || `user${Date.now()}`, // Generate username from email
-              email,
-              firstName,
-              lastName,
-              profileImageUrl: req.supabaseUser.user_metadata?.picture || req.supabaseUser.user_metadata?.avatar_url || null,
-              subscriptionStatus: 'free' as const,
-              dailyScansUsed: 0,
-            };
-            
-            user = await storage.upsertUser(userData);
-            console.log('Auto-created Supabase user:', userId);
+            if (existingUser) {
+              // Use the existing user for Supabase requests (don't change their ID)
+              req.supabaseUser.id = existingUser.id; // Override the Supabase ID
+              user = existingUser;
+              console.log('Using existing user for Supabase auth:', existingUser.id);
+            } else {
+              // Create completely new user for Supabase
+              const firstName = req.supabaseUser.user_metadata?.first_name || req.supabaseUser.user_metadata?.name?.split(' ')[0] || '';
+              const lastName = req.supabaseUser.user_metadata?.last_name || req.supabaseUser.user_metadata?.name?.split(' ').slice(1).join(' ') || '';
+              
+              const userData = {
+                id: userId,
+                username: `${email.split('@')[0]}_sb`, // Add suffix to avoid conflicts
+                email: `${email}_supabase`, // Add suffix to avoid email conflicts
+                firstName,
+                lastName,
+                profileImageUrl: req.supabaseUser.user_metadata?.picture || req.supabaseUser.user_metadata?.avatar_url || null,
+                subscriptionStatus: 'free' as const,
+                dailyScansUsed: 0,
+              };
+              
+              user = await storage.upsertUser(userData);
+              console.log('Created new Supabase user:', userId);
+            }
           }
         } catch (createError) {
-          console.error('Error auto-creating Supabase user:', createError);
+          console.error('Error handling Supabase user:', createError);
           // Don't fail the request, continue with auth
         }
       }
