@@ -79,9 +79,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -251,9 +252,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's food scans (protected)
-  app.get("/api/food-scans/:userId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/food-scans", universalAuth, async (req: any, res) => {
     try {
-      const { userId } = req.params;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const { limit = "10", offset = "0" } = req.query;
       
       const scans = await storage.getUserFoodScans(
@@ -270,9 +272,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get daily stats (protected)
-  app.get("/api/daily-stats/:userId/:date", isAuthenticated, async (req: any, res) => {
+  app.get("/api/daily-stats/:date", universalAuth, async (req: any, res) => {
     try {
-      const { userId, date } = req.params;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
+      const { date } = req.params;
       const stats = await storage.getDailyStats(userId, date);
       res.json(stats);
     } catch (error) {

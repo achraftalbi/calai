@@ -28,15 +28,15 @@ export default function Home() {
   
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  // Fetch daily stats
+  // Fetch daily stats  
   const { data: dailyStats } = useQuery<DailyStats | null>({
-    queryKey: ['/api/daily-stats', (user as any)?.id, today],
+    queryKey: ['/api/daily-stats', today],
     enabled: !!(user as any)?.id,
   });
 
   // Fetch recent scans
   const { data: recentScans = [] } = useQuery<FoodScan[]>({
-    queryKey: ['/api/food-scans', (user as any)?.id],
+    queryKey: ['/api/food-scans'],
     enabled: !!(user as any)?.id,
   });
 
