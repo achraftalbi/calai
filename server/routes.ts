@@ -32,11 +32,16 @@ async function universalAuth(req: any, res: any, next: any) {
           
           if (!user) {
             // Create new user from Supabase data
+            const firstName = req.supabaseUser.user_metadata?.first_name || req.supabaseUser.user_metadata?.name?.split(' ')[0] || '';
+            const lastName = req.supabaseUser.user_metadata?.last_name || req.supabaseUser.user_metadata?.name?.split(' ').slice(1).join(' ') || '';
+            const email = req.supabaseUser.email || '';
+            
             const userData = {
               id: userId,
-              email: req.supabaseUser.email || '',
-              firstName: req.supabaseUser.user_metadata?.first_name || req.supabaseUser.user_metadata?.name?.split(' ')[0] || '',
-              lastName: req.supabaseUser.user_metadata?.last_name || req.supabaseUser.user_metadata?.name?.split(' ').slice(1).join(' ') || '',
+              username: email.split('@')[0] || `user${Date.now()}`, // Generate username from email
+              email,
+              firstName,
+              lastName,
               profileImageUrl: req.supabaseUser.user_metadata?.picture || req.supabaseUser.user_metadata?.avatar_url || null,
               subscriptionStatus: 'free' as const,
               dailyScansUsed: 0,
