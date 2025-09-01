@@ -1,0 +1,617 @@
+Ça marche. Maintenant, je vais passer à la partie « Coach » dans laquelle je veux faire marcher et calculer cette partie-là. C'est-à-dire, si une personne marche, elle court, elle fait de la natation ou autre chose, on peut savoir combien elle a consommé de calories dans ce sens-là. Par exemple, combien elle a fait de pas. Ainsi, on saura combien elle a consommé de calories. J'ai testé cette partie. Elle ne marche pas, malheureusement. Ça veut dire que la partie « Connect extrava » me donne une erreur. Ça ne marche pas. Et aussi, ça veut dire qu'il faut faire marcher cette partie pour qu'elle marche d'une manière automatique. Pour un utilisateur qui va l'utiliser, il faut que ça marche automatiquement. Aussi, cette partie, c'est la deuxième grande fonctionnalité que j'ai dans l'application. Une fois qu'elle est faite, je vais faire ensuite des customisations et ensuite passer le projet au Market pour commencer à le commercialiser. Donc, il faudra bien la faire et il faut que ça soit quelque chose de simple pour l'utilisateur. Je n'aime pas cette manière-là que l'utilisateur doit, par exemple, se connecter à extrava et tout. Ça veut dire que ça serait bien de lui demander de se connecter au début de l'application lorsqu'elle se log. Pour la première fois, est-ce que tu veux te connecter à extrava ? Après, s'il dit non, on pourra l'ajouter dans la partie-là des settings pour l'utilisateur pour qu'il puisse l'activer ensuite. Mais premièrement, dans un premier temps, ça ne marche pas. J'aimerais premièrement que cette fonctionnalité marche. Est-ce que tu peux m'aider sur ça 
+ChatGPT a dit :
+Réflexion durant 42s
+
+Super — on a maintenant l’analyse des repas qui tourne ✅.
+Passons à Coach (pas, course, natation, etc.) et au raccord Strava.
+
+Ci-dessous je te donne :
+
+comment corriger l’erreur Strava (et le faire marcher tout de suite),
+
+une implémentation “zéro-setup” basée capteurs du téléphone (marche/course),
+
+un flux d’onboarding simple (proposer Strava à la 1ʳᵉ connexion puis dans Settings),
+
+la consolidation côté serveur pour calculer les calories et alimenter le dashboard.
+
+1) Strava – pourquoi ça échoue et comment le faire marcher
+
+Dans 90% des cas, l’erreur “Connect Strava” vient d’un redirect_uri qui ne correspond pas exactement à celui déclaré dans l’app Strava.
+
+A. Paramétrage Strava (une seule fois)
+
+Crée/ouvre ton app sur https://www.strava.com/settings/api
+
+Renseigne :
+
+Authorization Callback Domain : le domaine exact de ton Replit (ex. 04d06bf7-…picard.replit.dev).
+
+(optionnel) un second domaine si tu as un autre environnement.
+
+Garde ces secrets et mets-les en variables d’environnement (Replit “Secrets”) :
+
+STRAVA_CLIENT_ID=xxxxx
+STRAVA_CLIENT_SECRET=xxxxx
+STRAVA_REDIRECT_URI=https://<ton-repl>.replit.dev/api/strava/callback
+
+
+⚠️ Le STRAVA_REDIRECT_URI doit être HTTPS et exactement le même que celui utilisé dans l’URL d’auth.
+
+B. Routes backend (Node/Express)
+
+Ajoute (ou vérifie) ces handlers. Ils gèrent la connexion, l’échange de token et la persistance (avec refresh auto).
+
+// server/strava.ts
+import fetch from "node-fetch";
+import type { Request, Response } from "express";
+import { db } from "./db"; // ton accès DB/ORM
+import { upsertStravaAccount, getStravaAccount } from "./storage/strava"; // helpers
+import { ensureAuthedUser } from "./auth"; // récupère user (id,email)
+
+const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID!;
+const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET!;
+const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI!;
+
+export function attachStravaRoutes(app: any) {
+  // 1) Lancer l’auth
+  app.get("/api/strava/auth", ensureAuthedUser, (req: Request, res: Response) => {
+    const scope = [
+      "read",
+      "activity:read_all",
+      "profile:read_all"
+    ].join(",");
+    const url =
+      `https://www.strava.com/oauth/authorize?` +
+      `client_id=${encodeURIComponent(STRAVA_CLIENT_ID)}` +
+      `&response_type=code` +
+      `&redirect_uri=${encodeURIComponent(STRAVA_REDIRECT_URI)}` +
+      `&approval_prompt=auto` +
+      `&scope=${encodeURIComponent(scope)}`;
+    res.redirect(url);
+  });
+
+  // 2) Callback: échange code -> token + persistance
+  app.get("/api/strava/callback", ensureAuthedUser, async (req: Request, res: Response) => {
+    const { code } = req.query as { code?: string };
+    if (!code) return res.status(400).send("Missing code");
+
+    const tokenRes = await fetch("https://www.strava.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: STRAVA_CLIENT_SECRET,
+        code,
+        grant_type: "authorization_code",
+      }),
+    });
+    const tokens = await tokenRes.json();
+    if (!tokens.access_token) {
+      return res.status(400).send("Strava token exchange failed");
+    }
+
+    // tokens = { access_token, refresh_token, expires_at, athlete: { id, ... } }
+    await upsertStravaAccount(req.user.id, {
+      athlete_id: String(tokens.athlete?.id ?? ""),
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: tokens.expires_at,
+      scope: tokens.scope ?? null,
+    });
+
+    // Retourne vers l’app
+    res.redirect("/coach?strava=connected");
+  });
+
+  // 3) Sync “on demand”
+  app.post("/api/strava/sync", ensureAuthedUser, async (req: Request, res: Response) => {
+    const acct = await getStravaAccount(req.user.id);
+    if (!acct) return res.status(400).json({ ok: false, error: "not_connected" });
+
+    const access = await getFreshAccessToken(acct); // refresh si expiré
+    const since = Math.floor(Date.now() / 1000) - 3600 * 24 * 7; // dernier 7 jours
+    const actsRes = await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=50&after=${since}`, {
+      headers: { Authorization: `Bearer ${access}` },
+    });
+    const activities = await actsRes.json();
+
+    // Normalisation & insert
+    for (const a of activities) {
+      // calories: Strava renvoie 'calories' (quand dispo) ou 'kilojoules' (cyclisme)
+      const calories =
+        a.calories ??
+        (typeof a.kilojoules === "number" ? a.kilojoules * 0.239006 : // kJ -> kcal
+          estimateCaloriesFromMET(a));
+
+      await db.upsertActivity({
+        user_id: req.user.id,
+        provider: "strava",
+        provider_id: String(a.id),
+        type: a.type,                     // Run, Walk, Swim, Ride, etc.
+        start: a.start_date,
+        duration_sec: a.moving_time,
+        distance_m: a.distance,
+        calories,
+      });
+    }
+    res.json({ ok: true, imported: activities.length });
+  });
+}
+
+// Refresh helper
+async function getFreshAccessToken(acct: any): Promise<string> {
+  if (acct.expires_at * 1000 > Date.now() + 60_000) return acct.access_token;
+
+  const res = await fetch("https://www.strava.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: STRAVA_CLIENT_ID,
+      client_secret: STRAVA_CLIENT_SECRET,
+      refresh_token: acct.refresh_token,
+      grant_type: "refresh_token",
+    }),
+  });
+  const j = await res.json();
+  await db.updateStravaAccount(acct.user_id, {
+    access_token: j.access_token,
+    refresh_token: j.refresh_token,
+    expires_at: j.expires_at,
+  });
+  return j.access_token;
+}
+
+// Fallback calories si Strava ne renvoie rien
+function estimateCaloriesFromMET(a: any) {
+  // Très simple: MET * poids(kg) * durée(h)
+  const METS: Record<string, number> = {
+    Run: 9.8,
+    Ride: 7.5,
+    Walk: 3.3,
+    Swim: 6.0,
+    Hike: 6.0,
+    Elliptical: 5.0,
+    Rowing: 7.0,
+    Default: 5.0,
+  };
+  const met = METS[a.type] ?? METS.Default;
+  const weightKg = a.user_weight ?? 75;           // via profil si dispo
+  const hours = (a.moving_time ?? 0) / 3600;
+  return Math.round(met * weightKg * hours);
+}
+
+
+Schéma minimal DB (à adapter à Drizzle/SQL)
+
+strava_accounts(user_id pk, athlete_id, access_token, refresh_token, expires_at, scope, connected_at)
+
+activities(id pk, user_id, provider, provider_id, type, start, duration_sec, distance_m, calories)
+
+C. Côté Front (Coach)
+
+Bouton Connect Strava → window.location.href = '/api/strava/auth'
+
+Bouton Sync Now (optionnel) → POST /api/strava/sync
+
+Après callback, ton URL revient sur /coach?strava=connected → affiche “Connected ✅”
+
+D. Sync automatique
+
+Facile : un cron côté serveur (ex. toutes les 15 min) qui appelle sync pour les utilisateurs connectés.
+
+Idéal : Strava Webhooks (requiert une URL publique HTTPS permanente). Si Replit dort, reste sur cron.
+
+2) “Zero-setup” Tracking (capteurs du téléphone)
+
+Pour éviter toute configuration et récupérer des pas / marche / course quand l’app est ouverte :
+
+A. Android (Capacitor natif)
+
+Ajoute la permission :
+
+<!-- AndroidManifest.xml -->
+<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+
+
+Demande la permission au runtime (Android 10+) :
+
+import { PermissionsAndroid, Platform } from 'react-native'; // si RN
+// en Capacitor:
+import { Permissions } from '@capacitor/permissions';
+
+if (Platform.OS === 'android') {
+  await Permissions.request({ permissions: ['activity_recognition'] });
+}
+
+
+Utilise un pedometer plugin (ex. @capawesome/capacitor-pedometer) ou ton algo accelero existant :
+
+import { Pedometer } from '@capawesome/capacitor-pedometer';
+
+const isAvailable = await Pedometer.isStepCountingAvailable();
+if (isAvailable.value) {
+  Pedometer.addListener('stepCount', e => {
+    // e.stepsDelta
+    accumulateSteps(e.stepsDelta);
+  });
+  Pedometer.startUpdates();
+}
+
+
+Si tu restes PWA : continue avec l’accéléromètre (Generic Sensor API). Vérifie que l’utilisateur clique “Start Motion Tracking” pour initialiser correctement les capteurs et que l’origine est bien HTTPS.
+
+B. Logging + calories
+
+Segmente un “exercice” quand ≥ 2 min de marche/course continue.
+
+Calcule calories via MET en fonction du type détecté + poids utilisateur.
+
+POST vers /api/activities/ingest :
+
+await fetch('/api/activities/ingest', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    source: 'device',
+    type: detectedType,     // Walk / Run
+    start: segmentStartISO,
+    duration_sec: segmentDur,
+    steps: stepCount,
+    calories: estCalories,
+  }),
+});
+
+
+Côté serveur, upsert dans activities (provider=device) et dédoublonne si un Strava ultérieur couvre la même période.
+
+3) UX simple (proposition)
+
+Onboarding (1er login) : modal “Voulez-vous connecter Strava pour importer vos activités ? [Connecter] [Plus tard]”.
+
+Si Plus tard, case “Strava Integration” reste dans Coach et une action apparaît dans Settings (“Connect Strava”).
+
+Auto-sync après connexion (cron) => l’utilisateur voit ses activités sans action manuelle.
+
+4) Agrégation Coach (Eaten / Burned / Net)
+
+Eaten = somme calories des repas du jour (déjà OK).
+
+Burned = BMR (basal) + Activities (Strava + Device).
+
+Net = Burned – Eaten.
+
+Coté SQL : vue/join qui agrège meals et activities par jour et par user_id.
+
+Ce que je te conseille de faire maintenant
+
+Corriger Strava : vérifie STRAVA_REDIRECT_URI + domaine callback dans le dashboard Strava, puis mets les 3 routes ci-dessus.
+
+Tester : Connect → Callback → POST /api/strava/sync et vérifier que des lignes apparaissent dans activities.
+
+Activer le zero-setup (si tu build natif) : ajoute ACTIVITY_RECOGNITION et un plugin podomètre ; sinon garde ton module accelero mais assure la demande de permission et la logique de segmentation 2+ minutes.
+
+Onboarding : affiche le modal “Connect Strava” au 1er login (si pas déjà connecté).
+
+Cron : job serveur toutes les 15 min pour sync des comptes Strava actifs.
+
+Si tu veux, copie/colle ici (a) la réponse JSON de /api/strava/sync et (b) une entrée de ta table activities. Je te renvoie un patch exact pour tes noms de champs et l’agrégation “Energy Coach” afin que la carte s’alimente automatiquement.
+
+Vous avez dit :
+J'ai pushé le code sur gitlab je veux que tu vérifie ce que tu me recommandes et bien ce qui manque dans le code source : https://github.com/achraftalbi/calai
+ChatGPT a dit :
+
+Vous avez dit :
+J'ai pushé le code sur gitlab je veux que tu vérifie ce que tu me recommandes et bien ce qui manque dans le code source : https://github.com/achraftalbi/calai
+ChatGPT a dit :
+Réflexion durant 1m 17s
+
+Merci ! J’ai essayé d’ouvrir ton dépôt GitHub ici, mais GitHub bloque le rendu via mon navigateur intégré — je ne peux donc pas “lire” les fichiers directement depuis cette interface. Du coup, je te donne un checklist précis + des bouts de code prêts à copier pour (1) faire marcher Strava proprement et automatiquement, et (2) corriger l’affichage des repas/scans qui ne se mettent pas à jour.
+
+1) Strava – intégration “une fois / automatique” (recommandé)
+A. Variables d’environnement (server)
+
+Ajoute dans .env (côté server):
+
+STRAVA_CLIENT_ID=xxxxx
+STRAVA_CLIENT_SECRET=xxxxx
+STRAVA_VERIFY_TOKEN=some_random_string
+PUBLIC_BASE_URL=https://<ton-repl>.replit.dev         # ton URL publique
+
+
+Dans le dashboard Strava: crée une app → Redirect URI:
+https://<ton-repl>.replit.dev/api/strava/callback
+Scopes: read,activity:read_all
+
+B. Tables SQL (Supabase / Postgres)
+
+Exécute ces migrations (ou ajoute à shared/schema.ts si tu utilises Drizzle) :
+
+-- Tokens Strava par utilisateur
+create table if not exists strava_accounts (
+  user_id uuid primary key references users(id) on delete cascade,
+  athlete_id bigint not null unique,
+  access_token text not null,
+  refresh_token text not null,
+  expires_at timestamptz not null,
+  connected_at timestamptz not null default now()
+);
+
+-- Activités normalisées
+create table if not exists activities (
+  id bigserial primary key,
+  user_id uuid references users(id) on delete cascade,
+  source text not null check (source in ('strava','device')),
+  external_id text,                -- id Strava
+  type text not null,              -- "Run", "Walk", "Swim", etc.
+  start_at timestamptz not null,
+  duration_sec integer not null,
+  distance_m integer,
+  calories_kcal integer,
+  steps integer,
+  raw jsonb,                       -- JSON brut si utile
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_activities_user_created on activities(user_id, created_at desc);
+
+C. Routes serveur (Express)
+
+Ajoute un petit module server/strava.ts (ou dans routes.ts si tu préfères) :
+
+// server/strava.ts
+import express from 'express';
+import fetch from 'node-fetch';
+import { z } from 'zod';
+import { db } from './db'; // ton util DB / Supabase admin
+import { requireAuth } from './auth'; // ton middleware auth (user dans req.user)
+
+const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID!;
+const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET!;
+const VERIFY_TOKEN = process.env.STRAVA_VERIFY_TOKEN!;
+const BASE = process.env.PUBLIC_BASE_URL!;
+
+export const strava = express.Router();
+
+/** 1) Lancer l’OAuth */
+strava.get('/connect', requireAuth, (req, res) => {
+  const scope = 'read,activity:read_all';
+  const redirect = encodeURIComponent(`${BASE}/api/strava/callback`);
+  const url = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${redirect}&approval_prompt=auto&scope=${scope}&state=${req.user.id}`;
+  res.redirect(url);
+});
+
+/** 2) Callback OAuth: échange code -> tokens + enregistrement */
+strava.get('/callback', async (req, res) => {
+  const code = String(req.query.code || '');
+  const stateUserId = String(req.query.state || '');
+
+  const r = await fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      client_id: STRAVA_CLIENT_ID,
+      client_secret: STRAVA_CLIENT_SECRET,
+      code,
+      grant_type: 'authorization_code'
+    })
+  });
+  const tok = await r.json() as any;
+
+  // stocke tokens
+  await db.upsertStravaAccount({
+    user_id: stateUserId,
+    athlete_id: tok.athlete?.id,
+    access_token: tok.access_token,
+    refresh_token: tok.refresh_token,
+    expires_at: new Date(tok.expires_at * 1000)
+  });
+
+  // backfill initial (30 derniers jours)
+  await backfillActivities(stateUserId);
+
+  // deep link vers l’app si tu veux
+  // res.redirect('calai://oauth/strava/success');
+  res.send('Strava connected ✅. You can close this window.');
+});
+
+/** 3) Webhook Strava (subscription + events) */
+strava.get('/webhook', (req, res) => {
+  // Vérification du challenge Strava (setup de l’abonnement)
+  if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
+    return res.json({ 'hub.challenge': req.query['hub.challenge'] });
+  }
+  return res.status(403).end();
+});
+
+strava.post('/webhook', async (req, res) => {
+  // Event d’activité créée/mise à jour
+  const body = req.body as any; // { object_type, aspect_type, object_id, owner_id, ... }
+  if (body.object_type === 'activity') {
+    await ingestActivityFromWebhook(body.owner_id, body.object_id);
+  }
+  res.status(200).end();
+});
+
+/** 4) Backfill + Ingestion */
+async function backfillActivities(userId: string) {
+  const acc = await db.getStravaAccount(userId);
+  if (!acc) return;
+
+  const since = Math.floor((Date.now() - 1000*60*60*24*30)/1000);
+  const resp = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${since}&per_page=200`, {
+    headers: { Authorization: `Bearer ${acc.access_token}` }
+  });
+  const arr = await resp.json() as any[];
+
+  for (const a of arr) await saveStravaActivity(userId, a);
+}
+
+async function ingestActivityFromWebhook(athleteId: number, activityId: number) {
+  const user = await db.findUserByAthleteId(athleteId);
+  if (!user) return;
+  const acc = await db.getStravaAccount(user.id);
+  if (!acc) return;
+
+  const r = await fetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
+    headers: { Authorization: `Bearer ${acc.access_token}` }
+  });
+  if (!r.ok) return;
+  const a = await r.json();
+  await saveStravaActivity(user.id, a);
+}
+
+async function saveStravaActivity(userId: string, a: any) {
+  const moving = a.moving_time ?? 0;
+  const dist = a.distance ?? null;
+
+  // Calories : Strava ne donne pas toujours. Calcul fallback via MET si besoin.
+  const kcal = a.kilojoules ? Math.round(a.kilojoules * 0.239006) : null;
+
+  await db.insertActivity({
+    user_id: userId,
+    source: 'strava',
+    external_id: String(a.id),
+    type: a.type,                      // e.g. "Run", "Walk", "Swim"
+    start_at: new Date(a.start_date),
+    duration_sec: moving,
+    distance_m: dist,
+    calories_kcal: kcal,
+    steps: null,
+    raw: a
+  });
+
+  // Option: recalculer “Energy Coach” après insertion
+  // await db.recomputeDailyEnergy(userId, a.start_date);
+}
+
+export default strava;
+
+
+Dans ton server/index.ts :
+
+import strava from './strava';
+app.use('/api/strava', strava);
+
+Webhook / abonnement
+
+À faire une fois (depuis un script ou manuel) :
+
+POST https://www.strava.com/api/v3/push_subscriptions
+  client_id=...&client_secret=...&callback_url=https://<ton-repl>.replit.dev/api/strava/webhook&verify_token=<VERIFY_TOKEN>
+
+
+⚠️ Replit doit répondre en HTTPS et éveillé (pas endormi) pour le webhook.
+
+D. Appel côté client (Coach)
+
+Au premier login, si user.settings.ask_strava_onboarding === true, affiche un modal “Se connecter à Strava ?”
+
+Oui → window.location.href = '/api/strava/connect' (ou Capacitor.Browser.open({ url: ... }) en natif)
+
+Non → désactiver le flag (l’utilisateur pourra activer dans Settings plus tard)
+
+Sur la page Coach, affiche le statut (“Connecté à Strava ✓”).
+
+Rafraîchis la liste des activités quand l’utilisateur revient.
+
+2) Détection “automatique” intégrée (pas de compte requis)
+
+Tu l’as déjà partiellement — mais assure-toi que :
+
+Android Manifest contient :
+
+<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+<uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false"/>
+
+
+Côté webview, demande la permission (Permissions API) et stocke les sessions 2+ minutes puis insère dans activities avec source='device'.
+
+Quand tu ajoutes une activité locale, recalcule le “Energy Coach” du jour (eaten - burned).
+
+3) “Upload OK mais pas de photo dans la liste des repas”
+
+Vu tes derniers messages, l’analyse marche (notif calories) mais l’item ne s’affiche pas. Dans 99% des cas, c’est l’un des deux points :
+
+A. Le front n’invalide pas/rafraîchit la query après le scan
+
+Si tu utilises TanStack Query :
+
+const qc = useQueryClient();
+
+const scan = useMutation({
+  mutationFn: doScan, // POST /api/scan
+  onSuccess: () => {
+    qc.invalidateQueries({ queryKey: ['meals'] });   // <-- important
+    qc.invalidateQueries({ queryKey: ['energy-today']});
+  }
+});
+
+B. Le back enregistre mal l’URL
+
+Vérifie dans la table meals que image_url est bien rempli par /api/scan.
+
+Si tu utilises Supabase Storage, rends l’objet public ou génère un signed URL que tu renvoies au front.
+
+Exemple (server) :
+
+const { data: up } = await supabase.storage
+  .from('calai-uploads')
+  .upload(fileName, fileBuffer, { contentType: mime, upsert: true });
+
+const { data: pub } = supabase.storage
+  .from('calai-uploads')
+  .getPublicUrl(up.path);
+
+await db.insertMeal({
+  user_id,
+  image_url: pub.publicUrl,  // <- front affichera directement
+  calories_kcal: result.cal,
+  // ...
+});
+
+4) Calcul des calories “activités”
+
+Pour les activités sans calories natives :
+
+Formule MET :
+kcal = MET(type, speed) × poids(kg) × durée(heures)
+(ex. marche 3 km/h ≈ 2.8 MET; course 8 km/h ≈ 8.3 MET; natation modérée ≈ 6 MET)
+
+Poids = profil utilisateur, sinon valeur par défaut.
+
+Steps → distance estimée: steps × stride (stride ~ 0.78×taille); puis utiliser MET marche.
+
+5) Onboarding “propre”
+
+Après login → modale “Connecter Strava ?”
+
+Si Oui → /api/strava/connect, retour → “Strava connecté ✅”.
+
+Sinon → carte “Connecter Strava” dans Coach + réglage dans Profil/Settings.
+
+Toujours garder la détection automatique active par défaut (zéro config).
+
+6) Ce qu’il te faut vérifier dans ton code (résumé)
+
+ Variables d’env Strava présentes et Redirect URI identique à celle déclarée chez Strava
+
+ Routes /api/strava/connect, /api/strava/callback, /api/strava/webhook ajoutées
+
+ Tables strava_accounts & activities créées
+
+ Backfill initial + ingestion webhook implémentés
+
+ Sur le client, bouton Connect Strava pointe vers /api/strava/connect (Browser.open en natif)
+
+ Après scan, invalidateQueries(['meals']) pour rafraîchir la liste
+
+ image_url réellement stockée (public URL)
+
+ Permissions Android pour ACTIVITY_RECOGNITION et DeviceMotion disponibles
+
+ Recalcul “Energy Coach” après insertion d’activités
+
+Si tu veux, je te prépare un patch unique (fichiers + snippets exacts) que tu colles dans ton repo (mêmes chemins : server/strava.ts, ajouts routes, SQL/migrations, front coach). Dis-moi juste où vivent aujourd’hui tes routes serveur (server/routes.ts ?) et comment tu fais les migrations (Drizzle/Supabase SQL), et je te fournis le diff prêt à coller.
+
+ChatGPT peut faire des erreurs. Envisagez de vérifier les informations importantes.

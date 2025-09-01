@@ -10,7 +10,7 @@ import { calculateActivityCalories } from "./activityCalculations";
 
 const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID;
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
-const STRAVA_REDIRECT_URI = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/api/strava/callback`;
+const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI || `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/api/strava/callback`;
 
 interface StravaActivity {
   id: number;

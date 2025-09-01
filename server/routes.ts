@@ -357,9 +357,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Coach feature endpoints
-  app.get("/api/coach/today", isAuthenticated, async (req: any, res) => {
+  app.get("/api/coach/today", universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const today = new Date().toISOString().split('T')[0];
       const data = await getTodayCoachData(userId, today);
       res.json(data);
@@ -369,9 +370,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/manual/activity", isAuthenticated, async (req: any, res) => {
+  app.post("/api/manual/activity", universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const activityData = req.body as ManualActivityRequest;
       
       const activity = await addManualActivity(userId, activityData);
@@ -552,9 +554,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Device motion activity logging
-  app.post("/api/device-motion/activity", isAuthenticated, async (req: any, res) => {
+  app.post("/api/device-motion/activity", universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const { type, start, end, duration, steps, source } = req.body;
 
       // Get user weight for calorie calculations
@@ -599,9 +602,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Strava Integration Routes
-  app.get("/api/strava/auth", isAuthenticated, async (req: any, res) => {
+  app.get("/api/strava/auth", universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const authUrl = getStravaAuthUrl(userId);
       res.json({ authUrl });
     } catch (error) {
@@ -610,9 +614,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/strava/status", isAuthenticated, async (req: any, res) => {
+  app.get("/api/strava/status", universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const status = await checkStravaConnection(userId);
       res.json(status);
     } catch (error) {
@@ -647,9 +652,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/strava/sync", isAuthenticated, async (req: any, res) => {
+  app.post("/api/strava/sync", universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       const result = await importStravaData(userId);
       res.json(result);
     } catch (error) {
@@ -658,9 +664,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/strava/disconnect", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/strava/disconnect", universalAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from either Supabase or Replit auth
+      const userId = req.supabaseUser?.id || req.user?.claims?.sub;
       await disconnectStrava(userId);
       res.json({ success: true });
     } catch (error) {
