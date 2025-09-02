@@ -45,7 +45,7 @@ export function DeviceMotionTracker() {
 
   useEffect(() => {
     // Check if device motion is supported
-    setIsSupported(deviceMotionService.isSupported());
+    setIsSupported('DeviceMotionEvent' in window);
 
     // Check notification permission
     if ('Notification' in window) {
@@ -60,7 +60,7 @@ export function DeviceMotionTracker() {
     deviceMotionService.addListener(handleMotionData);
 
     return () => {
-      deviceMotionService.removeListener(handleMotionData);
+      deviceMotionService.removeListener();
     };
   }, []);
 
@@ -99,20 +99,23 @@ export function DeviceMotionTracker() {
   };
 
   const handleRequestNotifications = async () => {
-    const granted = await deviceMotionService.requestNotificationPermission();
-    setHasNotificationPermission(granted);
-    
-    if (granted) {
-      toast({
-        title: "Notifications Enabled",
-        description: "You'll now receive activity notifications when walking or running is detected.",
-      });
-    } else {
-      toast({
-        title: "Notifications Denied",
-        description: "Enable notifications in your browser settings to receive activity alerts.",
-        variant: "destructive",
-      });
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      const granted = permission === 'granted';
+      setHasNotificationPermission(granted);
+      
+      if (granted) {
+        toast({
+          title: "Notifications Enabled",
+          description: "You'll now receive activity notifications when walking or running is detected.",
+        });
+      } else {
+        toast({
+          title: "Notifications Denied",
+          description: "Enable notifications in your browser settings to receive activity alerts.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
